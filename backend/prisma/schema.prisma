@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Nivel de acceso asociado al tipo de usuario
+enum NivelAcceso {
+  propio
+  restaurante
+  global
+  delivery
+}
+
+/// Estado operativo del restaurante
+enum EstadoRestaurante {
+  activo
+  inactivo
+}
+
+/// Estado actual de un pedido
+enum EstadoPedido {
+  pendiente
+  confirmado
+  preparando
+  listo
+  en_transito
+  entregado
+  completado
+}
+
+/// Estado actual del envío
+enum EstadoEnvio {
+  pendiente
+  en_transito
+  entregado
+}
+
+/// Catálogo que define los roles de usuario y su nivel de acceso al sistema
+model TipoUsuario {
+  id          String      @id @default(uuid()) @db.Uuid
+  nombreRol   String      @unique @map("nombre_rol") @db.VarChar(100)
+  nivelAcceso NivelAcceso @map("nivel_acceso")
+
+  usuarios    Usuario[]
+
+  @@map("tipo_usuario")
+}
+
+/// Almacena la información principal de los usuarios del sistema
+model Usuario {
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String   @unique @db.VarChar(200)
+  nombre        String   @db.VarChar(200)
+  contrasena    String   @map("contraseña") @db.VarChar(255)
+  tipoUsuarioId String   @map("tipo_usuario_id") @db.Uuid
+
+  tipoUsuario   TipoUsuario @relation(fields: [tipoUsuarioId], references: [id])
+  delivery      Delivery?
+  pedidos       Pedido[]
+
+  @@map("usuario")
+}
+
+/// Catalogo de los tipos de transporte disponibles para los deliveries
+model TipoTransporte {
+  id          String @id @default(uuid()) @db.Uuid
+  descripcion String @unique @db.VarChar(20)
+
+  deliveries  Delivery[]
+
+  @@map("tipotransporte")
+}
+
+/// Registra los deliveries y su tipo de transporte asociado
+model Delivery {
+  id               String @id @default(uuid()) @db.Uuid
+  usuarioId        String @unique @map("usuario_id") @db.Uuid
+  tipoTransporteId String @map("tipo_transporte_id") @db.Uuid
+
+  usuario              Usuario               @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tipoTransporte       TipoTransporte        @relation(fields: [tipoTransporteId], references: [id])
+  deliveryRestaurantes DeliveryRestaurante[]
+  envios Envio[]
+
+  @@map("delivery")
+}
+
+/// Registra la información de los restaurantes de la plataforma
+model Restaurante {
+  id        String  @id @default(uuid()) @db.Uuid
+  nombre    String  @db.VarChar(200)
+  email     String  @unique @db.VarChar(200)
+  domicilio String  @db.VarChar(200)
+  latitude  Decimal @db.Decimal(10, 7)
+  longitude Decimal @db.Decimal(10, 7)
+  estado    EstadoRestaurante @default(activo)
+
+  platos               Plato[]
+  pedidos              Pedido[]
+  envios               Envio[]
+  deliveryRestaurantes DeliveryRestaurante[]
+
+  @@map("restaurante")
+}
+
+/// Registra la relación entre un delivery y los restaurantes a los que esta asociado
+model DeliveryRestaurante {
+  id            String @id @default(uuid()) @db.Uuid
+  deliveryId    String @map("delivery_id") @db.Uuid
+  restauranteId String @map("restaurante_id") @db.Uuid
+
+  delivery         Delivery                    @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  restaurante      Restaurante                 @relation(fields: [restauranteId], references: [id], onDelete: Cascade)
+
+  @@unique([deliveryId, restauranteId])
+  @@map("delivery_restaurante")
+}
+
+/// Registra los platos ofrecidos por los restaurantes y sus recipientes para el cálculo del impacto ambiental
+model Plato {
+  id                 String  @id @default(uuid()) @db.Uuid
+  restauranteId      String  @map("restaurante_id") @db.Uuid
+  nombre             String  @db.VarChar(200)
+  precio             Decimal @db.Decimal(10, 2)
+  cantidadVasos      Int?    @default(0) @map("cantidad_vasos")
+  cantidadPlatos     Int?    @default(0) @map("cantidad_platos")
+  cantidadCubiertos  Int?    @default(0) @map("cantidad_cubiertos")
+  cantidadRecipiente Int?    @default(0) @map("cantidad_recipiente")
+
+  restaurante Restaurante  @relation(fields: [restauranteId], references: [id], onDelete: Cascade)
+  itemsPedido ItemPedido[]
+
+  @@map("plato")
+}
+
+/// Regitra los pedidos realizados por los usuarios a los restaurantes
+model Pedido {
+  id            String       @id @default(uuid()) @db.Uuid
+  usuarioId     String       @map("usuario_id") @db.Uuid
+  restauranteId String       @map("restaurante_id") @db.Uuid
+  fecha         DateTime     @default(now())
+  estado        EstadoPedido @default(pendiente)
+  montoTotal    Decimal      @default(0.00) @map("monto_total") @db.Decimal(10, 2)
+
+  usuario      Usuario                     @relation(fields: [usuarioId], references: [id])
+  restaurante  Restaurante                 @relation(fields: [restauranteId], references: [id])
+  items        ItemPedido[]
+  envio        Envio?
+
+  @@index([fecha, estado], map: "idx_pedido_fecha_estado")
+  @@map("pedido")
+}
+
+/// Detalla los platos incluidos dentro de un pedido
+model ItemPedido {
+  id             String  @id @default(uuid()) @db.Uuid
+  pedidoId       String  @map("pedido_id") @db.Uuid
+  platoId        String  @map("plato_id") @db.Uuid
+  cantidad       Int
+  precioUnitario Decimal @map("precio_unitario") @db.Decimal(10, 2)
+
+  pedido Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  plato  Plato  @relation(fields: [platoId], references: [id])
+
+  @@map("itempedido")
+}
+
+/// Representa el envío de un pedido y su asignación a un delivery
+model Envio {
+  id               String      @id @default(uuid()) @db.Uuid
+  pedidoId         String      @unique @map("pedido_id") @db.Uuid
+  fechaEnvio       DateTime    @default(now()) @map("fecha_envio")
+  deliveryId       String      @map("delivery_id") @db.Uuid
+  distanciaKm      Decimal     @default(1.50) @map("distancia_km") @db.Decimal(5, 2)
+  restauranteId    String      @map("restaurante_id") @db.Uuid
+  domicilioDestino String      @map("domicilio_destino") @db.VarChar(500)
+  estado           EstadoEnvio @default(pendiente)
+
+  pedido      Pedido      @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  delivery    Delivery    @relation(fields: [deliveryId], references: [id])
+  restaurante Restaurante @relation(fields: [restauranteId], references: [id])
+
+  @@index([fechaEnvio, deliveryId], map: "idx_envio_fecha_delivery")
+  @@map("envio")
+}

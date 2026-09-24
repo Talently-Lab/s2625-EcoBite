@@ -17,3 +17,6 @@ Thumbs.db
 # Archivos de editores
 .vscode/
 .idea/
+
+# Cliente de Prisma generado
+generated/prisma/
