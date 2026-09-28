@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@import "tailwindcss";
+
+@theme{
+  --color-ecobrand-50: #f0fdf4;
+  --color-ecobrand-100: #dcfce7;
+  --color-ecobrand-500: #22c55e; /* Verde principal del Figma */
+  --color-ecobrand-600: #16a34a;
+  --color-ecobrand-700: #15803d;
+  --color-ecobrand-800: #166534;
+}
