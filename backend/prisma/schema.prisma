@@ -56,9 +56,14 @@ model Usuario {
   email         String   @unique @db.VarChar(200)
   nombre        String   @db.VarChar(200)
   contrasena    String   @map("contraseña") @db.VarChar(255)
+  imagenUri     String?   @map("imagen_url") @db.VarChar(500) 
+
   tipoUsuarioId String   @map("tipo_usuario_id") @db.Uuid
+  restauranteId String?   @map("restaurante_id") @db.Uuid
 
   tipoUsuario   TipoUsuario @relation(fields: [tipoUsuarioId], references: [id])
+  restaurante   Restaurante? @relation(fields: [restauranteId], references: [id])
+
   delivery      Delivery?
   pedidos       Pedido[]
 
@@ -94,11 +99,14 @@ model Restaurante {
   id        String  @id @default(uuid()) @db.Uuid
   nombre    String  @db.VarChar(200)
   email     String  @unique @db.VarChar(200)
+  imagenUrl String?  @map("imagen_url") @db.VarChar(500)
+
   domicilio String  @db.VarChar(200)
   latitude  Decimal @db.Decimal(10, 7)
   longitude Decimal @db.Decimal(10, 7)
   estado    EstadoRestaurante @default(activo)
 
+  usuarios             Usuario[]
   platos               Plato[]
   pedidos              Pedido[]
   envios               Envio[]
@@ -125,7 +133,9 @@ model Plato {
   id                 String  @id @default(uuid()) @db.Uuid
   restauranteId      String  @map("restaurante_id") @db.Uuid
   nombre             String  @db.VarChar(200)
+  imagenUrl          String?  @map("imagen_url") @db.VarChar(500)
   precio             Decimal @db.Decimal(10, 2)
+
   cantidadVasos      Int?    @default(0) @map("cantidad_vasos")
   cantidadPlatos     Int?    @default(0) @map("cantidad_platos")
   cantidadCubiertos  Int?    @default(0) @map("cantidad_cubiertos")
