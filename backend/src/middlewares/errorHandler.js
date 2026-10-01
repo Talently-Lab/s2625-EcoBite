@@ -1,7 +1,7 @@
 const AppError = require("../utils/AppError");
 
 const notFound = (req, res) => {
-    resizeBy.status(404).json({error: "Ruta no encontrada"});
+    res.status(404).json({error: "Ruta no encontrada"});
 };
 
 const errorHandler = (err, req, res, next) =>{

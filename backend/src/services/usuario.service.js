@@ -8,11 +8,20 @@ const ROL_POR_DEFECTO = "cliente";
 /**
  * 
  */
-const registrarUsuario = async({name, email, password}) =>{
-    if(!name || !email || !password) {
+const registrarUsuario = async({nombre, email, contrasena}) =>{
+    if(!nombre || !email || !contrasena) {
         throw new AppError("Faltan datos obligatorios para el registro", 400);
     }
+    if(typeof nombre !== "string" || typeof email !== "string" || typeof contrasena !== "string"){
+        throw new AppError("Los datos deben ser texto", 400);
+    }
+
+    const nombreLimpio = nombre.trim();
     const emailNormalizado = email.trim().toLowerCase();
+
+    if (!nombreLimpio || !emailNormalizado || !contrasena.trim()){
+        throw new AppError("Faltan datos obligatorios para el registro", 400);
+    }
 
     const existente = await usuarioRepository.findByEmail(emailNormalizado);
     if (existente){
@@ -25,11 +34,10 @@ const registrarUsuario = async({name, email, password}) =>{
     }
 
     return {
-        name: name.trim(),
+        nombre: nombreLimpio,
         email: emailNormalizado,
         tipoUsuarioId: rol.id,
     };
 };
-
 
 module.exports = { registrarUsuario };
