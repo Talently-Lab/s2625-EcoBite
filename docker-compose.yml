@@ -11,6 +11,24 @@ services:
       - "5432:5432"
     volumes:
       - ecobite_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecobite_user -d ecobite"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    container_name: ecobite_api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://ecobite_user:ecobite_pass@postgres:5432/ecobite?schema=public
+      PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   ecobite_pg_data:
