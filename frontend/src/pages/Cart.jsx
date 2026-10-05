@@ -1,91 +1,85 @@
-import { Link } from "react-router-dom";
+import React from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useCart } from '../context/CartContext'
 
 export default function Cart() {
-  return (
-    <div className="min-h-screen bg-white text-gray-900 max-w-md mx-auto border-x border-gray-100 font-sans pb-24">
-      <header className="px-4 py-3 flex items-center justify-between border-b border-gray-100 sticky top-0 bg-white z-10">
-        <Link to="/catalog" className="text-xl">
-          ←
-        </Link>
-        <span className="font-bold text-base text-gray-900">Tu pedido</span>
-        <span className="text-xs text-gray-500">1 producto</span>
-      </header>
+  const { cart, removeFromCart, clearCart, totalPrice } = useCart()
+  const navigate = useNavigate()
 
-      <main className="p-4 space-y-6">
-        {/* Item en carrito */}
-        <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-4">
-          <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 shrink-0">
-            🖼️
-          </div>
-
-          <div className="flex-1">
-            <h3 className="font-bold text-xs text-gray-900">
-              Hamburguesa Patagónica
-            </h3>
-            <p className="text-[10px] text-gray-500">
-              Vegano - Libre de glúten
-            </p>
-            <div className="flex items-center gap-2 mt-2 text-xs font-bold border border-gray-200 rounded-lg w-max px-2 py-0.5">
-              <button>-</button>
-              <span>1</span>
-              <button>+</button>
-            </div>
-          </div>
-
-          <span className="font-bold text-xs text-gray-900 self-start">
-            $26.750
-          </span>
-        </div>
-
-        <button className="text-xs text-gray-500 font-medium flex items-center gap-1">
-          + Agregar más productos
+  if (cart.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#FAFAF7] flex flex-col items-center justify-center p-4 text-center">
+        <div className="text-4xl mb-3">🛒</div>
+        <h2 className="text-base font-bold text-gray-800 mb-1">Tu carrito está vacío</h2>
+        <p className="text-xs text-gray-500 mb-4">Agrega productos sustentables desde los locales para comenzar.</p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-4 py-2 bg-[#BA8B5C] text-white rounded-xl text-xs font-semibold cursor-pointer"
+        >
+          Explorar locales
         </button>
+      </div>
+    )
+  }
 
-        {/* Tarjeta de Impacto / CO2 */}
-        <div className="border border-gray-200 rounded-xl p-4 space-y-2 bg-gray-50/50">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-700 block">
-            AHORRO ESTIMADO DE CO₂
-          </span>
-          <p className="text-lg font-bold text-gray-900">3.4 kg CO₂</p>
-          <div className="h-2 w-full bg-gray-200 rounded-full"></div>
+  return (
+    <div className="min-h-screen bg-[#FAFAF7] text-gray-800 font-sans pb-24">
+      <div className="max-w-2xl mx-auto px-4 py-4">
+        <h1 className="text-lg font-bold text-gray-900 mb-4">Tu Carrito EcoBite</h1>
+
+        <div className="space-y-3 mb-6">
+          {cart.map((item) => (
+            <div key={item.id} className="bg-white p-3 rounded-xl border border-gray-100 flex items-center justify-between gap-3 shadow-2xs">
+              <img src={item.img || item.image} alt={item.name} className="w-16 h-16 rounded-lg object-cover bg-gray-100 shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-xs text-gray-900 line-clamp-1">{item.name}</h3>
+                <p className="text-[11px] text-gray-400">Cantidad: {item.quantity}</p>
+                <span className="font-bold text-xs text-gray-900">{item.price}</span>
+              </div>
+              <button
+                onClick={() => removeFromCart(item.id)}
+                className="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1 cursor-pointer"
+              >
+                Eliminar
+              </button>
+            </div>
+          ))}
         </div>
 
         {/* Resumen de costos */}
-        <div className="space-y-2 text-xs">
-          <span className="font-bold uppercase tracking-wider text-gray-400 text-[10px] block mb-1">
-            Resumen
-          </span>
+        <div className="bg-white p-4 rounded-xl border border-gray-100 space-y-2 text-xs">
           <div className="flex justify-between text-gray-600">
             <span>Subtotal</span>
-            <span>+$0</span>
+            <span>${totalPrice.toLocaleString('es-AR')}</span>
           </div>
           <div className="flex justify-between text-gray-600">
-            <span>Delivery</span>
-            <span>+$1200</span>
+            <span>Envio eco-friendly</span>
+            <span className="text-emerald-600 font-medium">Gratis</span>
           </div>
-          <div className="flex justify-between text-gray-600">
-            <span>Packaging</span>
-            <span>+$0</span>
-          </div>
-          <hr className="border-gray-100 my-2" />
-          <div className="flex justify-between font-bold text-sm text-gray-900">
+          <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-sm text-gray-900">
             <span>Total</span>
-            <span>$27.950</span>
+            <span>${totalPrice.toLocaleString('es-AR')}</span>
           </div>
         </div>
-      </main>
+      </div>
 
-      {/* Botón flotante Confirmar */}
-      <footer className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-100 p-4 z-10">
-        // ✅ DESPUÉS (Corregido):
-        <Link
-          to="/profile"
-          className="w-full bg-black text-white font-bold text-xs py-3.5 px-4 rounded-xl flex items-center justify-between"
-        >
-          <span>Confirmar pedido</span>
-          <span>$27.950</span>
-        </Link>
-      </footer>
+      {/* Botones de acción fija */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-lg">
+        <div className="max-w-2xl mx-auto flex gap-3">
+          <button
+            onClick={clearCart}
+            className="px-4 py-3 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer"
+          >
+            Vaciar
+          </button>
+          <button
+            onClick={() => alert('¡Pedido realizado con éxito! Gracias por elegir EcoBite 🌱')}
+            className="flex-1 py-3 bg-[#BA8B5C] hover:bg-[#a67a4e] text-white rounded-xl text-xs font-bold transition cursor-pointer"
+          >
+            Finalizar Pedido (${totalPrice.toLocaleString('es-AR')})
+          </button>
+        </div>
+      </div>
     </div>
-  );
+  )
 }

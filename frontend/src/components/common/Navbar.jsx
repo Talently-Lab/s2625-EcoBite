@@ -29,13 +29,13 @@ export default function Navbar() {
             Explorar
           </Link>
 
-          {/* Botón de Carrito con Contador */}
-          <button className="relative p-2 text-gray-600 hover:text-ecobrand-600 transition">
+          {/* Enlace de Carrito con Contador */}
+          <Link to="/cart" className="relative p-2 text-gray-600 hover:text-ecobrand-600 transition">
             <span className="text-xl">🛒</span>
             <span className="absolute top-0 right-0 h-4 w-4 bg-ecobrand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
               2
             </span>
-          </button>
+          </Link>
 
           {/* Avatar Perfil */}
           <Link to="/profile" className="h-8 w-8 rounded-full bg-ecobrand-100 border border-ecobrand-500 text-ecobrand-700 font-bold flex items-center justify-center text-xs">
