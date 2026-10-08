@@ -23,6 +23,8 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - ./backend/.env 
     environment:
       DATABASE_URL: postgresql://ecobite_user:ecobite_pass@postgres:5432/ecobite?schema=public
       PORT: 3000

@@ -1,14 +1,17 @@
 const prisma = require("../config/prisma");
 
 /**
- * Metodo Busca un usuario por su email
+ * Metodo para buscar un usuario por su email
  */
 const findByEmail = (email) => {
-    return prisma.usuario.findUnique({ where: { email }});
+    return prisma.usuario.findUnique({ 
+        where: { email },
+        include: { tipoUsuario: true },
+    });
 };
 
 /**
- * Metodo que crea un usuario y retorna únicamente los datos necesarios
+ * Metodo para crear un usuario y retorna únicamente los datos necesarios
  */
 const create = (data) => {
     return prisma.usuario.create({
@@ -22,4 +25,4 @@ const create = (data) => {
     });
 };
 
-module.exports = { findByEmail, create};
+module.exports = { findByEmail, create };

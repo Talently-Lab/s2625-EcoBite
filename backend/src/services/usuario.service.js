@@ -1,7 +1,8 @@
 const AppError = require("../utils/AppError");
 const usuarioRepository = require("../repositories/usuario.repository");
 const tipoUsuarioRepository = require("../repositories/tipoUsuario.repository");
-const { tipoUsuario } = require("../config/prisma");
+
+const bcrypt = require("bcrypt");
 
 const ROL_POR_DEFECTO = "cliente";
 
@@ -33,11 +34,14 @@ const registrarUsuario = async({nombre, email, contrasena}) =>{
         throw new AppError("Rol por defecto no configurado", 500);
     }
 
-    return {
+    const contrasenaHash = await bcrypt.hash(contrasena, 10);
+
+    return usuarioRepository.create({
         nombre: nombreLimpio,
         email: emailNormalizado,
+        contrasena: contrasenaHash,
         tipoUsuarioId: rol.id,
-    };
+    });
 };
 
 module.exports = { registrarUsuario };
