@@ -56,7 +56,7 @@ Errores:
 
 Body:
 ```json
-{ "nombre": "Ana Prueba", "email": "ana@test.com", "contrasena": "Pass1234" }
+{ "nombre": "Ana Prueba", "email": "ana@test.com", "contrasena": "123456" }
 ```
 
 Reglas:
