@@ -22,6 +22,7 @@ const restaurantes = [
         latitude: 19.4326,
         longitude: -99.1332,
         estado: "activo",
+        categoriaComida: "vegano",
     },
     {
         nombre: "Raiz Organica",
@@ -30,6 +31,7 @@ const restaurantes = [
         latitude: 19.4194,
         longitude: -99.1627,
         estado: "activo",
+        categoriaComida: "sin_tacc",
     },
     {
         nombre: "Cocina Cerrada",
@@ -38,9 +40,9 @@ const restaurantes = [
         latitude: 19.4270,
         longitude: -99.1677,
         estado: "inactivo",
+        categoriaComida: "vegetariano",
     },
 ];
-
 //Inserta o actualiza datos iniciales
 async function main() {
     for(const rol of roles){

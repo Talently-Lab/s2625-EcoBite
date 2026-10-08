@@ -39,6 +39,15 @@ enum EstadoEnvio {
   entregado
 }
 
+/// Categorias de comida por los restaurantes
+enum CategoriaComida {
+  vegano
+  vegetariano
+  sin_tacc
+  comida_saludable
+  comida_rapida
+}
+
 /// Catálogo que define los roles de usuario y su nivel de acceso al sistema
 model TipoUsuario {
   id          String      @id @default(uuid()) @db.Uuid
@@ -105,6 +114,8 @@ model Restaurante {
   latitude  Decimal @db.Decimal(10, 7)
   longitude Decimal @db.Decimal(10, 7)
   estado    EstadoRestaurante @default(activo)
+
+  categoriaComida CategoriaComida @map("categoria_comida")
 
   usuarios             Usuario[]
   platos               Plato[]
