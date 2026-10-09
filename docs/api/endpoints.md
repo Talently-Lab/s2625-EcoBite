@@ -60,9 +60,8 @@ Body:
 ```
 
 Reglas:
-- `nombre`: obligatorio.
-- `email`: con formato válido (`usuario@dominio.ext`). Se guarda en minúsculas.
-- `contrasena`: obligatoria, de tipo texto. Aún sin reglas de complejidad.
+- `nombre`: obligatorio. Se guarda con la primera letra de cada palabra en mayúscula y el resto en minúscula.
+- `email`: con formato válido y dominio `gmail.com`, `outlook.com` o `hotmail.com`. Se guarda en minúsculas.
 - El rol se asigna automáticamente como `cliente`. No se envía en el body.
 
 Respuesta 201:
