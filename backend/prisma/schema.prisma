@@ -66,6 +66,7 @@ model Usuario {
   nombre        String   @db.VarChar(200)
   contrasena    String   @map("contraseña") @db.VarChar(255)
   imagenUri     String?   @map("imagen_url") @db.VarChar(500) 
+  activo        Boolean  @default(true)
 
   tipoUsuarioId String   @map("tipo_usuario_id") @db.Uuid
   restauranteId String?   @map("restaurante_id") @db.Uuid
