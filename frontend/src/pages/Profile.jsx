@@ -1,97 +1,123 @@
-import { Link } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 export default function Profile() {
+  const navigate = useNavigate()
+  const { user, isAuthenticated, loading, logout } = useAuth()
+
+  // Redirigir al Login si no está autenticado
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate('/login')
+    }
+  }, [isAuthenticated, loading, navigate])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FAFAF7] flex items-center justify-center text-xs text-gray-500">
+        Cargando perfil...
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return null // Evita renderizar mientras redirige a /login
+  }
+
   return (
-    <div className="min-h-screen bg-white text-gray-900 max-w-md mx-auto border-x border-gray-100 font-sans pb-12">
-      <header className="px-4 py-3 flex items-center justify-between border-b border-gray-100 sticky top-0 bg-white z-10">
-        <span className="font-bold text-base text-gray-900">Mi impacto</span>
-        <span className="text-xs text-gray-400">Septiembre 2026</span>
+    <div className="min-h-screen bg-[#FAFAF7] text-[#3D2314] font-sans pb-16">
+      {/* Resto del código de Profile.jsx */}
+      <header className="bg-[#FAFAF7] border-b border-gray-100 p-4 max-w-md mx-auto flex items-center justify-between">
+        <button onClick={() => navigate(-1)} className="text-gray-700 text-sm flex items-center gap-1 cursor-pointer">
+          ← Volver
+        </button>
+        <h1 className="font-bold text-sm text-[#3A2E2B]">Mi impacto</h1>
+        <span className="text-xs text-gray-500 font-medium">Septiembre 2026</span>
       </header>
 
-      <main className="p-4 space-y-5">
-        {/* Perfil de Usuario */}
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 font-bold">
-            👤
+      <main className="max-w-md mx-auto p-4 space-y-6">
+        {/* Tarjeta de Usuario con datos dinámicos */}
+        <div className="bg-[#F5EFE6] border border-[#E8DFC8] rounded-2xl p-4 flex items-center gap-4">
+          <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-200 shrink-0">
+            <img 
+              src={user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80"} 
+              alt="Avatar" 
+              className="w-full h-full object-cover"
+            />
           </div>
-          <div>
-            <h2 className="font-bold text-sm text-gray-900">Pedro Ramírez</h2>
-            <span className="text-[10px] bg-gray-100 border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-medium inline-block mt-0.5">
-              🔄 47 pedidos sustentables
-            </span>
+          <div className="space-y-1">
+            <h2 className="font-bold text-base text-[#3D2314]">{user?.name || user?.email || 'Pedro Ramírez'}</h2>
+            <div className="inline-flex items-center gap-1 bg-white/80 px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-[#3D2314] border border-[#E8DFC8]">
+              <span>🍃</span>
+              <span>47 pedidos sustentables</span>
+            </div>
           </div>
         </div>
 
-        {/* Total CO2 Ahorrado con Progreso Circular Simulado */}
-        <div className="border border-gray-200 rounded-2xl p-4 space-y-3">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
-            TOTAL CO₂ AHORRADO ESTE MES
-          </span>
-
-          <div className="flex items-center gap-4">
-            <div className="relative w-20 h-20 rounded-full border-4 border-gray-100 border-t-black border-r-black flex items-center justify-center shrink-0">
-              <span className="text-xs font-bold">73%</span>
+        {/* Plato más pedido y Métricas */}
+        <section className="space-y-3">
+          <h2 className="font-bold text-sm text-[#3D2314]">Tu plato más pedido</h2>
+          <div className="bg-white rounded-2xl p-3 border border-gray-100 shadow-2xs flex items-center gap-3">
+            <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+              <img 
+                src="https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=60" 
+                alt="Hamburguesa Patagónica" 
+                className="w-full h-full object-cover"
+              />
             </div>
-            <div>
-              <p className="text-base font-extrabold text-gray-900">18,7 kg</p>
-              <p className="text-[10px] text-gray-500">de tu objetivo mensual de 25 kg</p>
-              <div className="mt-2 space-y-0.5 text-[10px] text-gray-500">
-                <p>▪ Ahorrado: 18,7 kg</p>
-                <p>▪ Restante: 6,3 kg</p>
+            <div className="flex-1 space-y-2">
+              <div>
+                <h3 className="font-bold text-xs sm:text-sm text-gray-900">Hamburguesa Patagónica</h3>
+                <p className="text-[11px] text-gray-400">La Kermés</p>
               </div>
+              <button 
+                onClick={() => navigate('/product/104')}
+                className="px-3.5 py-1.5 bg-[#3D2314] hover:bg-[#2A180D] text-white text-[11px] font-medium rounded-xl transition flex items-center gap-1 cursor-pointer"
+              >
+                Pedir ahora &rarr;
+              </button>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Métricas Principales en Grilla */}
-        <div>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">
-            MÉTRICAS PRINCIPALES
-          </span>
-
+        <section className="space-y-3">
+          <h2 className="font-bold text-sm text-[#3D2314]">Métricas principales</h2>
           <div className="grid grid-cols-2 gap-3">
-            <div className="border border-gray-200 rounded-xl p-3">
-              <span className="text-xl font-extrabold text-gray-900 block">47</span>
-              <span className="text-[10px] text-gray-500">pedidos sustentables</span>
-              <span className="text-[10px] font-bold text-gray-400 block mt-2">Órdenes</span>
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs space-y-1">
+              <span className="text-xl font-bold text-[#3D2314]">12</span>
+              <p className="text-[11px] text-gray-400 font-medium">pedidos sustentables</p>
+              <p className="text-xs font-bold text-[#3D2314] pt-1">Órdenes</p>
             </div>
-
-            <div className="border border-gray-200 rounded-xl p-3">
-              <span className="text-xl font-extrabold text-gray-900 block">14</span>
-              <span className="text-[10px] text-gray-500">días de racha</span>
-              <span className="text-[10px] font-bold text-gray-400 block mt-2">Racha</span>
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs space-y-1">
+              <span className="text-xl font-bold text-[#3D2314]">10</span>
+              <p className="text-[11px] text-gray-400 font-medium">Plásticos evitados</p>
+              <p className="text-xs font-bold text-[#3D2314] pt-1">Órdenes sin utensilios</p>
             </div>
-
-            <div className="border border-gray-200 rounded-xl p-3">
-              <span className="text-sm font-extrabold text-gray-900 block">2kg de CO₂</span>
-              <span className="text-[10px] text-gray-500">ahorrado este mes</span>
-              <span className="text-[9px] text-gray-400 block mt-1">Por uso de packaging biodegradable</span>
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs space-y-1">
+              <span className="text-xl font-bold text-[#3D2314]">2 kg</span>
+              <p className="text-[11px] text-gray-400 font-medium">CO₂ ahorrado</p>
+              <p className="text-xs font-bold text-[#3D2314] pt-1">Por packaging</p>
             </div>
-
-            <div className="border border-gray-200 rounded-xl p-3">
-              <span className="text-sm font-extrabold text-gray-900 block">12kg de CO₂</span>
-              <span className="text-[10px] text-gray-500">ahorrado este mes</span>
-              <span className="text-[9px] text-gray-400 block mt-1">Por uso de transportes ecológicos</span>
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs space-y-1">
+              <span className="text-xl font-bold text-[#3D2314]">8 kg</span>
+              <p className="text-[11px] text-gray-400 font-medium">CO₂ ahorrado</p>
+              <p className="text-xs font-bold text-[#3D2314] pt-1">Por envíos ecológicos</p>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Ahorro semanal bar chart mockup */}
-        <div className="border border-gray-200 rounded-2xl p-4">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-3">
-            AHORRO SEMANAL DE CO₂
-          </span>
-          <div className="flex items-end justify-between h-16 gap-1 px-2">
-            {[40, 65, 30, 80, 95, 50, 70].map((height, idx) => (
-              <div key={idx} className="w-full bg-black rounded-t" style={{ height: `${height}%` }}></div>
-            ))}
-          </div>
-        </div>
-
-        <div className="text-center pt-2">
-          <Link to="/" className="text-xs text-gray-500 font-medium hover:underline">
-            ← Volver a la Home
-          </Link>
+        {/* Botón Cerrar Sesión */}
+        <div className="pt-2 text-center">
+          <button
+            onClick={() => {
+              logout()
+              navigate('/login')
+            }}
+            className="text-xs font-semibold text-red-600 hover:underline cursor-pointer"
+          >
+            Cerrar Sesión
+          </button>
         </div>
       </main>
     </div>

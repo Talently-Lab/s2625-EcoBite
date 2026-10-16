@@ -1,190 +1,187 @@
-import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { productsService } from '../services/productsService'
-import { useCart } from '../context/CartContext' // <-- Importamos el contexto
-
-// Datos mock de respaldo si falla el backend
-const PRODUCT_MOCK = {
-  id: 101,
-  name: 'Cuarto de Libra con Queso + Papas medianas',
-  store: "McDonald's",
-  price: '$12.460',
-  originalPrice: '$14.000',
-  rating: '4.3',
-  shipping: 'Gratis',
-  description: 'Hamburguesa con medallón de carne, queso cheddar, cebolla y pepinillos. Incluye papas medianas en empaque 100% compostable.',
-  img: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&auto=format&fit=crop&q=60',
-  category: 'Hamburguesas & Papas'
-}
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useCart } from '../context/CartContext' // Ajusta según tu ruta
 
 export default function ProductDetail() {
-  const { id } = useParams()
   const navigate = useNavigate()
-  const { addToCart } = useCart() // <-- Usamos la función para guardar en el carrito
+  const { addToCart } = useCart()
 
-  const [product, setProduct] = useState(null)
+  // Estados de personalización según el Figma
+  const [selectedMedallon, setSelectedMedallon] = useState('falafel')
+  const [selectedPan, setSelectedPan] = useState('clasico')
   const [quantity, setQuantity] = useState(1)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [added, setAdded] = useState(false)
 
-  useEffect(() => {
-    async function fetchProduct() {
-      try {
-        setLoading(true)
-        setError(null)
+  // Precios base y opcionales
+  const precioBase = 16750
 
-        const data = await productsService.getProductById(id)
-        if (data) {
-          setProduct(data)
-        } else {
-          setProduct(PRODUCT_MOCK)
-        }
-      } catch (err) {
-        console.warn('Error al cargar producto, usando mock:', err)
-        setError('Cargando información guardada...')
-        setProduct(PRODUCT_MOCK)
-      } finally {
-        setLoading(false)
-      }
+  const opcionesMedallon = [
+    { id: 'falafel', nombre: 'Medallón de Falafel', extra: 0 },
+    { id: 'girgolas', nombre: 'Medallón de Gírgolas y Porotos Negros', extra: 1200 },
+    { id: 'quinoa', nombre: 'Medallón de Quinoa y Calabaza', extra: 1400 },
+  ]
+
+  const opcionesPan = [
+    { id: 'clasico', nombre: 'Pan Clásico', extra: 0 },
+  ]
+
+  // Calcular precio extra acumulado
+  const extraMedallon = opcionesMedallon.find(m => m.id === selectedMedallon)?.extra || 0
+  const extraPan = opcionesPan.find(p => p.id === selectedPan)?.extra || 0
+  const precioUnitario = precioBase + extraMedallon + extraPan
+  const precioTotal = precioUnitario * quantity
+
+  const handleAgregar = () => {
+    const productoParaAgregar = {
+      id: 104,
+      name: 'Hamburguesa Patagónica',
+      price: precioUnitario,
+      quantity: quantity,
+      options: {
+        medallon: opcionesMedallon.find(m => m.id === selectedMedallon)?.nombre,
+        pan: opcionesPan.find(p => p.id === selectedPan)?.nombre,
+      },
+      img: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=60'
     }
 
-    if (id) {
-      fetchProduct()
+    if (addToCart) {
+      addToCart(productoParaAgregar)
     }
-  }, [id])
-
-  const handleAddToCart = () => {
-    if (product) {
-      addToCart(product, quantity) // <-- Guarda el producto con la cantidad seleccionada
-      setAdded(true)
-      setTimeout(() => setAdded(false), 2000)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#FAFAF7] flex items-center justify-center text-sm text-gray-500 font-medium">
-        Cargando producto...
-      </div>
-    )
-  }
-
-  if (!product) {
-    return (
-      <div className="min-h-screen bg-[#FAFAF7] flex flex-col items-center justify-center p-4">
-        <p className="text-gray-600 mb-4">No se encontró el producto.</p>
-        <button
-          onClick={() => navigate('/')}
-          className="px-4 py-2 bg-[#BA8B5C] text-white rounded-xl text-sm font-medium"
-        >
-          Volver al Inicio
-        </button>
-      </div>
-    )
+    navigate('/cart')
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF7] text-gray-800 font-sans pb-24">
+    <div className="min-h-screen bg-[#FAFAF7] text-[#3D2314] font-sans pb-28">
+      
       {/* Botón Volver */}
-      <div className="max-w-3xl mx-auto px-4 py-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-xs font-semibold text-gray-600 hover:text-gray-900 flex items-center gap-1 cursor-pointer"
+      <div className="relative">
+        <button 
+          onClick={() => navigate(-1)} 
+          className="absolute top-4 left-4 z-10 w-9 h-9 bg-white/80 backdrop-blur-xs rounded-full flex items-center justify-center text-sm font-bold shadow-sm hover:bg-white transition cursor-pointer"
         >
-          ← Volver
+          ←
         </button>
-      </div>
 
-      <main className="max-w-3xl mx-auto px-4 space-y-6">
-        {/* Imagen principal */}
-        <div className="h-64 sm:h-80 rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 shadow-2xs">
-          <img
-            src={product.img || product.image}
-            alt={product.name}
-            className="w-full h-full object-cover"
+        {/* Imagen Principal */}
+        <div className="w-full h-72 sm:h-80 bg-white overflow-hidden flex items-center justify-center p-4">
+          <img 
+            src="https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&auto=format&fit=crop&q=80" 
+            alt="Hamburguesa Patagónica" 
+            className="w-full h-full object-contain max-w-sm"
           />
         </div>
+      </div>
 
-        {/* Detalle del Producto */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-2xs space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <span className="text-xs text-amber-800 font-medium bg-amber-50 px-2 py-0.5 rounded-md">
-                {product.store || 'Restaurante'}
-              </span>
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900 mt-1">{product.name}</h1>
-            </div>
-            <div className="text-right shrink-0">
-              <span className="text-lg font-bold text-gray-900 block">
-                {typeof product.price === 'number' ? `$${product.price}` : product.price}
-              </span>
-              {product.originalPrice && (
-                <span className="text-xs text-gray-400 line-through block">{product.originalPrice}</span>
-              )}
+      <main className="max-w-md mx-auto px-4 py-4 space-y-6">
+        
+        {/* Título y Precio Principal */}
+        <div className="flex items-start justify-between gap-4 border-b border-gray-100 pb-4">
+          <h1 className="font-bold text-lg sm:text-xl text-[#3D2314] leading-tight">
+            Hamburguesa Patagónica
+          </h1>
+          <span className="font-bold text-base sm:text-lg text-[#3D2314] shrink-0">
+            ${precioBase.toLocaleString()}
+          </span>
+        </div>
+
+        {/* Descripción */}
+        <div className="space-y-1.5 border-b border-gray-100 pb-4">
+          <h2 className="font-bold text-sm text-[#3D2314]">Descripción</h2>
+          <p className="text-xs text-gray-500 leading-relaxed">
+            Pan brioche, mayonesa vegana, medallón de falafel, salteado de hongos, cebolla morada y queso a base de almendras.
+          </p>
+        </div>
+
+        {/* Sección Personalizá */}
+        <div className="space-y-5">
+          <h2 className="font-bold text-sm text-[#3D2314] uppercase tracking-wide">Personalizá</h2>
+
+          {/* Opción 1: MEDALLONES */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-bold text-[#8C6D58] uppercase tracking-wider">MEDALLONES</h3>
+            <div className="space-y-1">
+              {opcionesMedallon.map((opcion) => (
+                <label 
+                  key={opcion.id}
+                  onClick={() => setSelectedMedallon(opcion.id)}
+                  className="flex items-center justify-between py-2 border-b border-gray-100 cursor-pointer text-xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selectedMedallon === opcion.id ? 'border-[#3D2314]' : 'border-gray-300'}`}>
+                      {selectedMedallon === opcion.id && <div className="w-2 h-2 rounded-full bg-[#3D2314]" />}
+                    </div>
+                    <span className="text-gray-700">{opcion.nombre}</span>
+                  </div>
+                  <span className="font-medium text-gray-600">
+                    ${opcion.extra}
+                  </span>
+                </label>
+              ))}
             </div>
           </div>
 
-          <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-            {product.description || 'Sin descripción disponible.'}
-          </p>
-
-          <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t border-gray-100">
-            <span className="text-amber-500 font-bold">★ {product.rating || '4.5'}</span>
-            <span>•</span>
-            <span className="text-emerald-600 font-medium">Envío {product.shipping || 'Gratis'}</span>
-            <span>•</span>
-            <span>🌱 Empaque Compostable</span>
+          {/* Opción 2: PAN */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-bold text-[#8C6D58] uppercase tracking-wider">PAN</h3>
+            <div className="space-y-1">
+              {opcionesPan.map((opcion) => (
+                <label 
+                  key={opcion.id}
+                  onClick={() => setSelectedPan(opcion.id)}
+                  className="flex items-center justify-between py-2 border-b border-gray-100 cursor-pointer text-xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selectedPan === opcion.id ? 'border-[#3D2314]' : 'border-gray-300'}`}>
+                      {selectedPan === opcion.id && <div className="w-2 h-2 rounded-full bg-[#3D2314]" />}
+                    </div>
+                    <span className="text-gray-700">{opcion.nombre}</span>
+                  </div>
+                  <span className="font-medium text-gray-600">
+                    ${opcion.extra}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Selector de Cantidad */}
-        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs flex items-center justify-between">
-          <span className="text-sm font-semibold text-gray-700">Cantidad</span>
-          <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5">
-            <button
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="text-gray-600 hover:text-gray-900 font-bold text-base px-1 cursor-pointer"
+        {/* Contador de Cantidad y Subtotal */}
+        <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-3 py-1.5 shadow-2xs">
+            <button 
+              onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+              className="w-6 h-6 flex items-center justify-center text-sm font-bold text-gray-600 hover:text-black cursor-pointer"
             >
-              -
+              –
             </button>
-            <span className="text-sm font-bold w-4 text-center">{quantity}</span>
-            <button
-              onClick={() => setQuantity((q) => q + 1)}
-              className="text-gray-600 hover:text-gray-900 font-bold text-base px-1 cursor-pointer"
+            <span className="text-xs font-bold text-gray-800">{quantity}</span>
+            <button 
+              onClick={() => setQuantity(prev => prev + 1)}
+              className="w-6 h-6 flex items-center justify-center text-sm font-bold text-gray-600 hover:text-black cursor-pointer"
             >
               +
             </button>
           </div>
+
+          <div className="text-right">
+            <span className="text-xs font-bold text-[#3D2314]">Total: ${precioTotal.toLocaleString()}</span>
+          </div>
         </div>
+
       </main>
 
-      {/* Barra fija inferior para Añadir al Carrito */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-lg z-20">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
-          <div>
-            <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold block">Total</span>
-            <span className="text-base font-bold text-gray-900">
-              ${(
-                (parseFloat(
-                  typeof product.price === 'string'
-                    ? product.price.replace(/[^0-9.]/g, '')
-                    : product.price
-                ) || 0) * quantity
-              ).toLocaleString('es-AR')}
-            </span>
-          </div>
-
+      {/* Botón Agregar Fijo Inferior estilo Figma */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 p-4 z-30">
+        <div className="max-w-md mx-auto">
           <button
-            onClick={handleAddToCart}
-            className={`flex-1 max-w-xs py-3 rounded-xl font-bold text-sm text-white transition cursor-pointer ${
-              added ? 'bg-emerald-600' : 'bg-[#BA8B5C] hover:bg-[#a67a4e]'
-            }`}
+            onClick={handleAgregar}
+            className="w-full py-3.5 bg-[#3D2314] hover:bg-[#2A180D] text-white font-semibold rounded-2xl shadow-md transition flex items-center justify-between px-6 cursor-pointer"
           >
-            {added ? '✓ Añadido al Carrito' : 'Agregar al Carrito'}
+            <span>Agregar</span>
+            <span className="text-base">${precioTotal.toLocaleString()}</span>
           </button>
         </div>
       </div>
+
     </div>
   )
 }
