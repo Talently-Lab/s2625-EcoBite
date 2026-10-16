@@ -34,10 +34,25 @@ const cargarUsuarioActual = async (req, res, next) => {
     next();
 };
 
+/**
+ * Carga los datos del usuario si está autenticado
+ * Si no hay usuario, continua sin generar un error
+ *
+ * @param {object} req - solicitud http
+ * @param {object} res - respuesta http
+ * @param {Function} next - continua al siguiente middleware
+ */
+const cargarUsuarioActualOpcional = (req, res, next) => {
+    if (!req.usuario){
+        return next();
+    }
+    return cargarUsuarioActual(req, res, next);
+}
+
 
 /**
  * Restringe el acceso a los roles especificados
- * debe ejecutarse despues de cargarUsuarioActural
+ * debe ejecutarse despues de cargarUsuarioActual
  * 
  * @param  {...string} rolesPermitidos - Roles autorizados para acceder
  * @returns {Function} Middleware de express que valida los permisos
@@ -48,8 +63,8 @@ const autorizarRoles = (...rolesPermitidos) => (req, res, next) => {
         throw new AppError("No tienes permisos para esta accion", 403);
     }
     next();
-}
+};
 
 
-module.exports = { cargarUsuarioActual, autorizarRoles };
+module.exports = { cargarUsuarioActual, autorizarRoles, cargarUsuarioActualOpcional };
 

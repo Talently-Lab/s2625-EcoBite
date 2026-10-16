@@ -23,4 +23,11 @@ const verificarToken = (req, res, next) =>{
     }
 };
 
-module.exports = { verificarToken };
+const verificarTokenOpcional = (req, res, next) => {
+    if (req.headers.authorization === undefined){
+        return next();
+    }
+    return verificarToken(req, res, next);
+};
+
+module.exports = { verificarToken, verificarTokenOpcional };

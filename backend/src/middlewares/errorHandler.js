@@ -19,6 +19,12 @@ const errorHandler = (err, req, res, next) =>{
         return res.status(400).json({error: "JSON invalido"});
     }
 
+    //
+    if (err.type === "entity.too.large"){
+        return res.status(413).json({
+            error: "El cuerpo de la petición supera el tamaño permitido",
+        });
+    }
     console.error(err);
     res.status(500).json({error: "Error interno del servidor"});
 }

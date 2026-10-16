@@ -5,6 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["public", "analytics"]
 }
 
 /// Nivel de acceso asociado al tipo de usuario
@@ -13,12 +14,16 @@ enum NivelAcceso {
   restaurante
   global
   delivery
+
+  @@schema("public")
 }
 
 /// Estado operativo del restaurante
 enum EstadoRestaurante {
   activo
   inactivo
+
+  @@schema("public")
 }
 
 /// Estado actual de un pedido
@@ -30,6 +35,8 @@ enum EstadoPedido {
   en_transito
   entregado
   completado
+
+  @@schema("public")
 }
 
 /// Estado actual del envío
@@ -37,6 +44,8 @@ enum EstadoEnvio {
   pendiente
   en_transito
   entregado
+
+  @@schema("public")
 }
 
 /// Categorias de comida por los restaurantes
@@ -46,6 +55,8 @@ enum CategoriaComida {
   sin_tacc
   comida_saludable
   comida_rapida
+
+  @@schema("public")
 }
 
 /// Catálogo que define los roles de usuario y su nivel de acceso al sistema
@@ -54,30 +65,32 @@ model TipoUsuario {
   nombreRol   String      @unique @map("nombre_rol") @db.VarChar(100)
   nivelAcceso NivelAcceso @map("nivel_acceso")
 
-  usuarios    Usuario[]
+  usuarios Usuario[]
 
   @@map("tipo_usuario")
+  @@schema("public")
 }
 
 /// Almacena la información principal de los usuarios del sistema
 model Usuario {
-  id            String   @id @default(uuid()) @db.Uuid
-  email         String   @unique @db.VarChar(200)
-  nombre        String   @db.VarChar(200)
-  contrasena    String   @map("contraseña") @db.VarChar(255)
-  imagenUri     String?   @map("imagen_url") @db.VarChar(500) 
-  activo        Boolean  @default(true)
+  id         String  @id @default(uuid()) @db.Uuid
+  email      String  @unique @db.VarChar(200)
+  nombre     String  @db.VarChar(200)
+  contrasena String  @map("contraseña") @db.VarChar(255)
+  imagenUri  String? @map("imagen_url") @db.VarChar(500)
+  activo     Boolean @default(true)
 
-  tipoUsuarioId String   @map("tipo_usuario_id") @db.Uuid
-  restauranteId String?   @map("restaurante_id") @db.Uuid
+  tipoUsuarioId String  @map("tipo_usuario_id") @db.Uuid
+  restauranteId String? @map("restaurante_id") @db.Uuid
 
-  tipoUsuario   TipoUsuario @relation(fields: [tipoUsuarioId], references: [id])
-  restaurante   Restaurante? @relation(fields: [restauranteId], references: [id])
+  tipoUsuario TipoUsuario  @relation(fields: [tipoUsuarioId], references: [id])
+  restaurante Restaurante? @relation(fields: [restauranteId], references: [id])
 
-  delivery      Delivery?
-  pedidos       Pedido[]
+  delivery Delivery?
+  pedidos  Pedido[]
 
   @@map("usuario")
+  @@schema("public")
 }
 
 /// Catalogo de los tipos de transporte disponibles para los deliveries
@@ -85,9 +98,10 @@ model TipoTransporte {
   id          String @id @default(uuid()) @db.Uuid
   descripcion String @unique @db.VarChar(20)
 
-  deliveries  Delivery[]
+  deliveries Delivery[]
 
   @@map("tipotransporte")
+  @@schema("public")
 }
 
 /// Registra los deliveries y su tipo de transporte asociado
@@ -99,9 +113,10 @@ model Delivery {
   usuario              Usuario               @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   tipoTransporte       TipoTransporte        @relation(fields: [tipoTransporteId], references: [id])
   deliveryRestaurantes DeliveryRestaurante[]
-  envios Envio[]
+  envios               Envio[]
 
   @@map("delivery")
+  @@schema("public")
 }
 
 /// Registra la información de los restaurantes de la plataforma
@@ -109,11 +124,11 @@ model Restaurante {
   id        String  @id @default(uuid()) @db.Uuid
   nombre    String  @db.VarChar(200)
   email     String  @unique @db.VarChar(200)
-  imagenUrl String?  @map("imagen_url") @db.VarChar(500)
+  imagenUrl String? @map("imagen_url") @db.VarChar(500)
 
-  domicilio String  @db.VarChar(200)
-  latitude  Decimal @db.Decimal(10, 7)
-  longitude Decimal @db.Decimal(10, 7)
+  domicilio String            @db.VarChar(200)
+  latitude  Decimal           @db.Decimal(10, 7)
+  longitude Decimal           @db.Decimal(10, 7)
   estado    EstadoRestaurante @default(activo)
 
   categoriaComida CategoriaComida @map("categoria_comida")
@@ -125,6 +140,7 @@ model Restaurante {
   deliveryRestaurantes DeliveryRestaurante[]
 
   @@map("restaurante")
+  @@schema("public")
 }
 
 /// Registra la relación entre un delivery y los restaurantes a los que esta asociado
@@ -133,30 +149,32 @@ model DeliveryRestaurante {
   deliveryId    String @map("delivery_id") @db.Uuid
   restauranteId String @map("restaurante_id") @db.Uuid
 
-  delivery         Delivery                    @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  restaurante      Restaurante                 @relation(fields: [restauranteId], references: [id], onDelete: Cascade)
+  delivery    Delivery    @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  restaurante Restaurante @relation(fields: [restauranteId], references: [id], onDelete: Cascade)
 
   @@unique([deliveryId, restauranteId])
   @@map("delivery_restaurante")
+  @@schema("public")
 }
 
 /// Registra los platos ofrecidos por los restaurantes y sus recipientes para el cálculo del impacto ambiental
 model Plato {
-  id                 String  @id @default(uuid()) @db.Uuid
-  restauranteId      String  @map("restaurante_id") @db.Uuid
-  nombre             String  @db.VarChar(200)
-  imagenUrl          String?  @map("imagen_url") @db.VarChar(500)
-  precio             Decimal @db.Decimal(10, 2)
+  id            String  @id @default(uuid()) @db.Uuid
+  restauranteId String  @map("restaurante_id") @db.Uuid
+  nombre        String  @db.VarChar(200)
+  imagenUrl     String? @map("imagen_url") @db.VarChar(500)
+  precio        Decimal @db.Decimal(10, 2)
 
-  cantidadVasos      Int?    @default(0) @map("cantidad_vasos")
-  cantidadPlatos     Int?    @default(0) @map("cantidad_platos")
-  cantidadCubiertos  Int?    @default(0) @map("cantidad_cubiertos")
-  cantidadRecipiente Int?    @default(0) @map("cantidad_recipiente")
+  cantidadVasos      Int? @default(0) @map("cantidad_vasos")
+  cantidadPlatos     Int? @default(0) @map("cantidad_platos")
+  cantidadCubiertos  Int? @default(0) @map("cantidad_cubiertos")
+  cantidadRecipiente Int? @default(0) @map("cantidad_recipiente")
 
   restaurante Restaurante  @relation(fields: [restauranteId], references: [id], onDelete: Cascade)
   itemsPedido ItemPedido[]
 
   @@map("plato")
+  @@schema("public")
 }
 
 /// Regitra los pedidos realizados por los usuarios a los restaurantes
@@ -168,13 +186,14 @@ model Pedido {
   estado        EstadoPedido @default(pendiente)
   montoTotal    Decimal      @default(0.00) @map("monto_total") @db.Decimal(10, 2)
 
-  usuario      Usuario                     @relation(fields: [usuarioId], references: [id])
-  restaurante  Restaurante                 @relation(fields: [restauranteId], references: [id])
-  items        ItemPedido[]
-  envio        Envio?
+  usuario     Usuario      @relation(fields: [usuarioId], references: [id])
+  restaurante Restaurante  @relation(fields: [restauranteId], references: [id])
+  items       ItemPedido[]
+  envio       Envio?
 
   @@index([fecha, estado], map: "idx_pedido_fecha_estado")
   @@map("pedido")
+  @@schema("public")
 }
 
 /// Detalla los platos incluidos dentro de un pedido
@@ -189,6 +208,7 @@ model ItemPedido {
   plato  Plato  @relation(fields: [platoId], references: [id])
 
   @@map("itempedido")
+  @@schema("public")
 }
 
 /// Representa el envío de un pedido y su asignación a un delivery
@@ -208,4 +228,22 @@ model Envio {
 
   @@index([fechaEnvio, deliveryId], map: "idx_envio_fecha_delivery")
   @@map("envio")
+  @@schema("public")
+}
+
+/// Eventos del modulo de registro
+model Evento {
+  id             String   @id @default(uuid()) @db.Uuid
+  nombreEvento   String   @map("nombre_evento") @db.VarChar(100)
+  rolUsuario     String   @map("rol_usuario") @db.VarChar(100)
+  usuarioId      String?  @map("usuario_id") @db.Uuid
+  sessionId      String   @map("session_id") @db.Uuid
+  fechaCliente   DateTime @map("fecha_cliente") @db.Timestamptz(3)
+  fechaRecepcion DateTime @default(now()) @map("fecha_recepcion") @db.Timestamptz(3)
+  propiedades    Json     @default("{}") @db.JsonB
+
+  @@index([nombreEvento, fechaRecepcion])
+  @@index([sessionId])
+  @@map("eventos")
+  @@schema("analytics")
 }
