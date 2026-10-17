@@ -28,9 +28,30 @@ const registrarUsuario = async({nombre, email, contrasena}) =>{
         throw new AppError("Los datos deben ser texto", 400);
     }
 
+    const nombreNormalizado = capitalizarNombre(nombre);
+    if (!nombreNormalizado){
+        throw new AppError("El nombre no puede estar vacío", 400);
+    }
+
+    if (Array.from(nombreNormalizado).length > 200){
+        throw new AppError("El nombre no puede superar 200 caracteres", 400);
+    }
+
+    if (!contrasena.trim()){
+        throw new AppError("La contraseña no puede contener solo espacios", 400);
+    }
+
+    if (Array.from(contrasena).length < 15){
+        throw new AppError("La contraseña debe tener al menos 15 caracteres", 400);
+    }
+
+    if (Buffer.byteLength(contrasena, "utf8") > 72) {
+        throw new AppError("La contraseña no puede superar 72 bytes", 400);
+    }
+
     const emailNormalizado = email.trim().toLowerCase();
 
-    if (emailNormalizado.length > 254 || !validator.isEmail(emailNormalizado)){
+    if (emailNormalizado.length > 200 || !validator.isEmail(emailNormalizado)){
         throw new AppError("El email no es válido", 400);
     }
 
@@ -53,7 +74,7 @@ const registrarUsuario = async({nombre, email, contrasena}) =>{
     const contrasenaHash = await bcrypt.hash(contrasena, 10);
 
     return usuarioRepository.create({
-        nombre: capitalizarNombre(nombre),
+        nombre: nombreNormalizado,
         email: emailNormalizado,
         contrasena: contrasenaHash,
         tipoUsuarioId: rol.id,

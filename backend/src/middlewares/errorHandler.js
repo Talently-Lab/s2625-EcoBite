@@ -26,6 +26,13 @@ const errorHandler = (err, req, res, next) =>{
         });
     }
     console.error(err);
+
+    //maneja cuerpos que superan el limite de parser
+    if (err.type === "entity.too.large"){
+        return res.status(413).json({
+            error: "El cuerpo de la petición supera el tamaño permitido",
+        });
+    }
     res.status(500).json({error: "Error interno del servidor"});
 }
 
