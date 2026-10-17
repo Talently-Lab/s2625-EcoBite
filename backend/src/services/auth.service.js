@@ -15,6 +15,11 @@ const login = async({ email, contrasena })=> {
         throw new AppError("Email y/o contraseña son obligatorios", 400);
     }
 
+    //evita comparar contraseñas truncadas por bycript, solo procesa los primeros 72 bytes de la contraseña
+    if (Buffer.byteLength(contrasena, "utf8") > 72){
+        throw new AppError("Credenciales invalidas", 401);
+    }
+
     const emailNormalizado = email.trim().toLowerCase();
     const usuario = await usuarioRepository.findByEmail(emailNormalizado);
 
