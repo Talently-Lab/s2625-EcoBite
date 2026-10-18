@@ -1,6 +1,6 @@
 # API EcoBite - Endpoints
 
-**Última actualización:** 2026-10-16
+**Última actualización:** 2026-10-18
 **Responsable:** Brandon (Backend)
 
 Base URL (local): `http://localhost:3000/api`
@@ -361,3 +361,144 @@ Límites actuales:
 | 415 | Content-Type distinto de `application/json` |
 | 429 | Límite de peticiones excedido |
 | 500 | Error interno al guardar el evento público |
+
+
+---
+
+## Platos
+
+Las rutas siguientes usan la Base URL: `http://localhost:3000/api`.
+
+### GET /restaurantes/:restauranteId/platos
+
+**Acceso:** público, sin token.
+
+Devuelve los platos activos de un restaurante activo, ordenados por nombre e ID.
+Si no tiene platos disponibles, devuelve `[]`.
+
+**Respuesta:** 200 con un arreglo de platos.
+
+**Errores:**
+- 400: UUID inválido.
+- 404: restaurante inexistente o inactivo.
+
+### POST /restaurantes/:restauranteId/platos
+
+**Acceso:** requiere Bearer Token y cuenta activa.
+- `admin`: puede crear platos en cualquier restaurante activo.
+- `gerente_restaurante`: solo en su restaurante asignado.
+
+**Body:**
+
+```json
+{
+  "nombre": "Ensalada verde",
+  "precio": "85.50",
+  "cantidadVasos": 0,
+  "cantidadPlatos": 1,
+  "cantidadCubiertos": 1,
+  "cantidadRecipiente": 0
+}
+```
+
+**Reglas:**
+- El body debe ser un objeto JSON.
+- `nombre`: obligatorio, entre 1 y 200 caracteres después de normalizar espacios. Conserva las mayúsculas y minúsculas recibidas.
+- `precio`: obligatorio, mayor que cero, hasta 99999999.99 y con máximo dos decimales. Acepta número o texto decimal con punto.
+- Las cantidades deben ser enteros entre 0 y 2147483647. Si se omiten al crear, valen cero; no aceptan null.
+- El restaurante se obtiene de la URL.
+- No se aceptan campos adicionales, incluidos `restauranteId`, `activo` e `imagenUrl`.
+- El plato se crea activo y sin imagen.
+- La subida de imágenes está pendiente de implementación.
+
+**Respuesta 201:**
+
+```json
+{
+  "message": "Plato creado con éxito",
+  "plato": {
+    "id": "075a0868-3e04-4fd9-9995-92af6227937e",
+    "restauranteId": "7be4dd88-9bff-4994-b985-073256525740",
+    "nombre": "Ensalada verde",
+    "imagenUrl": null,
+    "precio": "85.5",
+    "activo": true,
+    "cantidadVasos": 0,
+    "cantidadPlatos": 1,
+    "cantidadCubiertos": 1,
+    "cantidadRecipiente": 0
+  }
+}
+```
+
+Los precios se devuelven como texto decimal y pueden omitir ceros finales.
+El frontend puede mostrarlos con dos decimales.
+
+### PATCH /restaurantes/:restauranteId/platos/:platoId
+
+**Acceso:** requiere los mismos permisos que la creación.
+
+Acepta los mismos campos del POST, pero solo exige enviar al menos uno.
+Los campos omitidos conservan su valor.
+
+**Body de ejemplo:**
+
+```json
+{
+  "precio": "90.00"
+}
+```
+
+**Respuesta:** 200 con el mensaje `"Plato actualizado con éxito"` y el objeto `plato` actualizado.
+
+**Reglas:**
+- El restaurante debe estar activo.
+- El plato debe pertenecer al restaurante de la URL.
+- Se puede editar un plato desactivado sin reactivarlo.
+- Este endpoint no modifica el estado ni la imagen.
+
+### PATCH /restaurantes/:restauranteId/platos/:platoId/estado
+
+**Acceso:** requiere los mismos permisos que la creación.
+
+El body acepta únicamente `activo`, de tipo booleano.
+
+**Body para desactivar:**
+
+```json
+{
+  "activo": false
+}
+```
+
+Para reactivar, envía `{"activo": true}`.
+
+**Respuesta 200:**
+
+```json
+{
+  "message": "Estado del plato actualizado con éxito",
+  "plato": {
+    "id": "075a0868-3e04-4fd9-9995-92af6227937e",
+    "restauranteId": "7be4dd88-9bff-4994-b985-073256525740",
+    "nombre": "Ensalada verde",
+    "activo": false
+  }
+}
+```
+
+**Reglas:**
+- El restaurante debe estar activo y el plato debe pertenecerle.
+- Desactivar retira el plato del listado público, pero no elimina el registro.
+- Reactivar permite que vuelva a aparecer.
+- Repetir el mismo estado no lo alterna.
+- No acepta `"true"` o `"false"` como texto.
+
+### Errores de las operaciones protegidas de platos
+
+| Código | Motivo |
+|---|---|
+| 400 | Identificadores, campos o valores inválidos |
+| 401 | Token ausente, inválido o expirado; usuario inexistente |
+| 403 | Cuenta desactivada, rol no autorizado o restaurante ajeno al gerente |
+| 404 | Restaurante inexistente/inactivo o plato que no pertenece al restaurante indicado |

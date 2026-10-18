@@ -19,4 +19,15 @@ const findAllActive = () => {
     });
 };
 
-module.exports = {findAllActive};
+//Busca un restaurante por su identificador
+const findById = (id) =>{
+    return prisma.restaurante.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            estado: true,
+        },
+    });
+};
+
+module.exports = { findAllActive, findById };

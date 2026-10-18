@@ -164,6 +164,7 @@ model Plato {
   nombre        String  @db.VarChar(200)
   imagenUrl     String? @map("imagen_url") @db.VarChar(500)
   precio        Decimal @db.Decimal(10, 2)
+  activo        Boolean @default(true)
 
   cantidadVasos      Int? @default(0) @map("cantidad_vasos")
   cantidadPlatos     Int? @default(0) @map("cantidad_platos")
