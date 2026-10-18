@@ -1,0 +1,39 @@
+const AppError = require("../utils/AppError");
+
+const notFound = (req, res) => {
+    res.status(404).json({error: "Ruta no encontrada"});
+};
+
+const errorHandler = (err, req, res, next) =>{
+    if (err instanceof AppError){
+        return res.status(err.statusCode || 500).json({error: err.message});
+    }
+
+    //Violacion de campo unico en prisma
+    if (err.code === "P2002"){
+        return res.status(409).json({ error: "El registro ya existe"});
+    }
+
+    // json mal formado en el body
+    if (err.type === "entity.parse.failed" ){
+        return res.status(400).json({error: "JSON invalido"});
+    }
+
+    //
+    if (err.type === "entity.too.large"){
+        return res.status(413).json({
+            error: "El cuerpo de la petición supera el tamaño permitido",
+        });
+    }
+    console.error(err);
+
+    //maneja cuerpos que superan el limite de parser
+    if (err.type === "entity.too.large"){
+        return res.status(413).json({
+            error: "El cuerpo de la petición supera el tamaño permitido",
+        });
+    }
+    res.status(500).json({error: "Error interno del servidor"});
+}
+
+module.exports = { notFound, errorHandler }
