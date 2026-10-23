@@ -117,5 +117,29 @@ const actualizarEstado = (platoId, restauranteId, activo) => {
     });
 };
 
+//Obtiene los platos disponibles solicitados para un pedido
+const findDisponiblesParaPedido = (restauranteId, platoIds, db=prisma) => {
+    return db.plato.findMany({
+        where: {
+            id: { in: platoIds },
+            restauranteId,
+            activo: true,
+            restaurante: {
+                estado: "activo"
+            },
+        },
+        select: {
+            id: true,
+            nombre: true,
+            precio: true,
+            cantidadVasos: true,
+            cantidadPlatos: true,
+            cantidadCubiertos: true,
+            cantidadRecipiente: true,
+        },
+    });
+};
+
 module.exports = { findActivosByRestaurante, crear,
-     findByIdYRestaurante, actualizar, actualizarEstado};
+                   findByIdYRestaurante, actualizar,
+                   actualizarEstado, findDisponiblesParaPedido, };

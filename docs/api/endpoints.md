@@ -1,6 +1,6 @@
 # API EcoBite - Endpoints
 
-**Última actualización:** 2026-10-18
+**Última actualización:** 2026-10-22
 **Responsable:** Brandon (Backend)
 
 Base URL (local): `http://localhost:3000/api`
@@ -502,3 +502,132 @@ Para reactivar, envía `{"activo": true}`.
 | 401 | Token ausente, inválido o expirado; usuario inexistente |
 | 403 | Cuenta desactivada, rol no autorizado o restaurante ajeno al gerente |
 | 404 | Restaurante inexistente/inactivo o plato que no pertenece al restaurante indicado |
+
+
+
+---
+
+## Pedidos
+
+### POST /pedidos
+
+Crea un pedido con sus detalles y su envío.
+
+**Autenticación:** requiere token de un usuario activo con rol `cliente`.
+
+Body:
+
+```json
+{
+  "restauranteId": "7be4dd88-9bff-4994-b985-073256525740",
+  "domicilioDestino": "Calle Primavera 123",
+  "items": [
+    {
+      "platoId": "075a0868-3e04-4fd9-9995-92af6227937e",
+      "cantidad": 2
+    }
+  ]
+}
+```
+
+Reglas:
+
+- El body debe ser un objeto JSON. Se rechazan campos no permitidos.
+- `restauranteId` y cada `platoId` deben ser UUID válidos.
+- El restaurante debe existir y estar activo.
+- `items` debe contener al menos un elemento.
+- Cada elemento admite únicamente `platoId` y `cantidad`.
+- No se permiten platos repetidos; sus unidades se indican en `cantidad`.
+- `cantidad` debe ser un entero entre 1 y 2147483647.
+- Todos los platos deben estar activos y pertenecer al restaurante indicado.
+- `domicilioDestino` es obligatorio: texto de 1 a 500 caracteres después
+  de normalizar espacios. No se verifica geográficamente la dirección.
+- El usuario se obtiene del token; no se recibe `usuarioId` en el body.
+- Los precios y las cantidades de envases se obtienen de la base de datos.
+- El total se calcula en el backend y no puede superar 99999999.99.
+- Pedido, detalles y envío se guardan dentro de una misma transacción.
+  Si falla una operación, se revierten las escrituras de esa transacción.
+
+Respuesta 201 — ejemplo con dos unidades a 100:
+
+```json
+{
+  "message": "Pedido creado con éxito",
+  "pedido": {
+    "id": "c7662d18-3161-4e19-ac56-767f47947aca",
+    "usuarioId": "a5a6e9bc-6b2c-4f7b-aa13-2e0bc09febf9",
+    "restauranteId": "7be4dd88-9bff-4994-b985-073256525740",
+    "fecha": "2026-10-23T02:21:42.402Z",
+    "estado": "pendiente",
+    "montoTotal": "200",
+    "items": [
+      {
+        "id": "2452c44b-433b-41a7-86d0-fbac0d9652b3",
+        "platoId": "075a0868-3e04-4fd9-9995-92af6227937e",
+        "cantidad": 2,
+        "precioUnitario": "100",
+        "cantidadVasos": 0,
+        "cantidadPlatos": 1,
+        "cantidadCubiertos": 1,
+        "cantidadRecipiente": 0
+      }
+    ],
+    "envio": {
+      "pedidoId": "c7662d18-3161-4e19-ac56-767f47947aca",
+      "restauranteId": "7be4dd88-9bff-4994-b985-073256525740",
+      "domicilioDestino": "Calle Primavera 123",
+      "deliveryId": null,
+      "distanciaKm": "1.5",
+      "estado": "pendiente",
+      "fechaEnvio": "2026-10-23T02:21:42.447Z"
+    },
+    "impactoEstimado": {
+      "ahorroEnvasesGramos": "200",
+      "ahorroTransporteGramos": "0.00"
+    }
+  }
+}
+```
+
+Interpretación:
+
+- `precioUnitario` y las cantidades de envases corresponden a una unidad
+  del plato y conservan los valores al crear el pedido.
+- Cambiar posteriormente el plato no modifica esos valores históricos.
+- Las cantidades de envases pueden ser `null` cuando no se dispone
+  de esa información; `null` no significa cero.
+- El pedido y el envío comienzan en `pendiente`.
+- `deliveryId: null` indica que todavía no hay repartidor asignado.
+- La distancia del MVP es fija: 1.50 km.
+- `fechaEnvio` registra la creación del envío, no su aceptación
+  por el delivery ni su entrega al cliente.
+- Los importes y la distancia se devuelven como texto decimal;
+  pueden aparecer sin ceros finales.
+
+Impacto estimado:
+
+- Se calcula para la respuesta; no se guarda como un total en una columna.
+- Envases: suma de unidades pedidas × envases por unidad × 50 gramos.
+- Si falta alguna cantidad de envases, `ahorroEnvasesGramos` devuelve `null`.
+- Transporte: máximo(distanciaKm − 1.5, 0) × 80 gramos.
+  Con la distancia fija actual, devuelve `"0.00"`.
+- Ambos resultados se expresan en gramos y se devuelven como texto
+  cuando están disponibles.
+- El impacto de un pedido pendiente es estimado. Las consultas
+  del dashboard deberán aplicar el filtro de pedidos completados.
+
+Errores:
+
+| Código | Motivo |
+|---|---|
+| 400 | Datos inválidos, campos adicionales, platos repetidos o no disponibles, o total fuera de rango |
+| 401 | Token ausente, inválido o expirado; usuario autenticado inexistente |
+| 403 | Cuenta desactivada o rol distinto de cliente |
+| 404 | Restaurante inexistente o inactivo |
+| 500 | Error interno; la transacción no guarda parcialmente el pedido |
+
+Limitaciones actuales:
+
+- Repetir una petición válida crea otro pedido: todavía no hay idempotencia.
+- No se implementan en este endpoint pagos ni cambios posteriores de estado.
+- La asignación y aceptación del delivery se implementarán por separado.

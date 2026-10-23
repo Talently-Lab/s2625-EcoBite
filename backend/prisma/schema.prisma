@@ -199,11 +199,17 @@ model Pedido {
 
 /// Detalla los platos incluidos dentro de un pedido
 model ItemPedido {
-  id             String  @id @default(uuid()) @db.Uuid
-  pedidoId       String  @map("pedido_id") @db.Uuid
-  platoId        String  @map("plato_id") @db.Uuid
-  cantidad       Int
-  precioUnitario Decimal @map("precio_unitario") @db.Decimal(10, 2)
+  id                 String  @id @default(uuid()) @db.Uuid
+  pedidoId           String  @map("pedido_id") @db.Uuid
+  platoId            String  @map("plato_id") @db.Uuid
+  cantidad           Int
+  precioUnitario     Decimal @map("precio_unitario") @db.Decimal(10, 2)
+  /// Cantidades por unidad del plato al crear el pedido.
+  /// NULL indica que no se dispone del dato histórico.
+  cantidadVasos      Int?    @map("cantidad_vasos")
+  cantidadPlatos     Int?    @map("cantidad_platos")
+  cantidadCubiertos  Int?    @map("cantidad_cubiertos")
+  cantidadRecipiente Int?    @map("cantidad_recipiente")
 
   pedido Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   plato  Plato  @relation(fields: [platoId], references: [id])
@@ -217,14 +223,14 @@ model Envio {
   id               String      @id @default(uuid()) @db.Uuid
   pedidoId         String      @unique @map("pedido_id") @db.Uuid
   fechaEnvio       DateTime    @default(now()) @map("fecha_envio")
-  deliveryId       String      @map("delivery_id") @db.Uuid
+  deliveryId       String?     @map("delivery_id") @db.Uuid
   distanciaKm      Decimal     @default(1.50) @map("distancia_km") @db.Decimal(5, 2)
   restauranteId    String      @map("restaurante_id") @db.Uuid
   domicilioDestino String      @map("domicilio_destino") @db.VarChar(500)
   estado           EstadoEnvio @default(pendiente)
 
   pedido      Pedido      @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  delivery    Delivery    @relation(fields: [deliveryId], references: [id])
+  delivery    Delivery?   @relation(fields: [deliveryId], references: [id], onDelete: Restrict)
   restaurante Restaurante @relation(fields: [restauranteId], references: [id])
 
   @@index([fechaEnvio, deliveryId], map: "idx_envio_fecha_delivery")
