@@ -8,6 +8,7 @@ const { calcularAhorroEnvasesGramos,
         calcularAhorroTransporteGramos, } = require("../utils/impactoPedido");
 const envioRepository = require("../repositories/envio.repository");
 const prisma = require("../config/prisma");
+const { validarUuid } = require("../validators/uuid.validator");
 
 // Comprueba el permiso antes de procesar los datos
 const autorizarCrecion = (usuarioActual) => {
@@ -24,6 +25,12 @@ const comprobarRestauranteActivo = async (restauranteId, db) => {
     }
 };
 
+// Calcula el impacto con los datos historicos del pedido
+const obtenerImpactoEstimado = (pedido) => ({
+    ahorroEnvasesGramos: calcularAhorroEnvasesGramos(pedido.items),
+    ahorroTransporteGramos: pedido.envio ? calcularAhorroTransporteGramos(pedido.envio.distanciaKm): null,
+});
+
 // Guarda el pedido y su envio usandoo la misma transaccion
 const crearPedidoConEnvio = async (datos, usuarioId, calculo, db) => {
     const pedido = await pedidoRepository.crear({
@@ -38,14 +45,11 @@ const crearPedidoConEnvio = async (datos, usuarioId, calculo, db) => {
         restauranteId: pedido.restauranteId,
         domicilioDestino: datos.domicilioDestino,
     }, db);
+    const pedidoConEnvio = { ...pedido, envio };
 
     return {
-        ...pedido,
-        envio,
-        impactoEstimado: {
-            ahorroEnvasesGramos: calcularAhorroEnvasesGramos(pedido.items),
-            ahorroTransporteGramos: calcularAhorroTransporteGramos(envio.distanciaKm),
-        },
+        ...pedidoConEnvio,
+        impactoEstimado: obtenerImpactoEstimado(pedidoConEnvio),
     };
 };
 
@@ -74,4 +78,23 @@ const crearPedido = async (datos, usuarioActual) => {
         guardarPedido(datosValidados, usuarioActual.id, tx));
 };
 
-module.exports = { crearPedido };
+// consulta un pedido perteneciente al cliente autenticado
+const consultarPedido = async (pedidoId, usuarioActual) => {
+    if (!usuarioActual || usuarioActual.nombreRol !== "cliente") {
+        throw new AppError("Solo los clientes pueden consultar sus pedidos", 403);
+    }
+
+    const id = validarUuid(pedidoId, "El ID del pedido");
+    const pedido = await pedidoRepository.findByIdYUsuario(
+        id,
+        usuarioActual.id,
+    );
+
+    if (!pedido) {
+        throw new AppError("Pedido no encontrado", 404);
+    }
+
+    return { ...pedido, impactoEstimado: obtenerImpactoEstimado(pedido), };
+}
+
+module.exports = { crearPedido, consultarPedido };

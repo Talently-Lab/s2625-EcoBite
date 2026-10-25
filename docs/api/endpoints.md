@@ -1,6 +1,6 @@
 # API EcoBite - Endpoints
 
-**Última actualización:** 2026-10-22
+**Última actualización:** 2026-10-25
 **Responsable:** Brandon (Backend)
 
 Base URL (local): `http://localhost:3000/api`
@@ -631,3 +631,39 @@ Limitaciones actuales:
 - Repetir una petición válida crea otro pedido: todavía no hay idempotencia.
 - No se implementan en este endpoint pagos ni cambios posteriores de estado.
 - La asignación y aceptación del delivery se implementarán por separado.
+
+
+### GET /pedidos/:pedidoId
+
+Consulta un pedido del cliente autenticado.
+
+**Autenticación:** token de un usuario activo con rol `cliente`.
+
+- `pedidoId` debe ser un UUID válido.
+- Solo devuelve pedidos pertenecientes al usuario autenticado.
+- No recibe body.
+- No modifica registros.
+
+Respuesta 200:
+
+Devuelve `{ "pedido": { ... } }`, incluyendo los datos del pedido,
+sus detalles, el envío e `impactoEstimado`.
+
+- Los precios y envases corresponden a los valores históricos guardados.
+- `envio` puede ser `null` en pedidos anteriores sin envío.
+- `ahorroTransporteGramos` es `null` si no existe envío.
+- `ahorroEnvasesGramos` es `null` si falta información de envases.
+- Los ahorros disponibles se expresan en gramos como texto.
+
+Errores:
+
+| Código | Motivo |
+|---|---|
+| 400 | Identificador del pedido inválido |
+| 401 | Token ausente, inválido o expirado; usuario inexistente |
+| 403 | Cuenta desactivada o rol distinto de cliente |
+| 404 | Pedido inexistente o perteneciente a otro cliente |
+| 500 | Error interno del servidor |
+
+Un pedido ajeno devuelve el mismo error que uno inexistente:
+`{ "error": "Pedido no encontrado" }`.

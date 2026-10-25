@@ -7,5 +7,6 @@ const { cargarUsuarioActual,
 const router = Router();
 
 router.post("/", verificarToken, cargarUsuarioActual, autorizarRoles("cliente"), pedidoController.crear);
+router.get("/:pedidoId", verificarToken, cargarUsuarioActual, autorizarRoles("cliente"), pedidoController.consultar);
 
 module.exports = router;

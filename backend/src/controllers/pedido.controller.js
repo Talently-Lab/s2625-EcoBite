@@ -13,4 +13,14 @@ const crear = async (req, res) => {
     });
 };
 
-module.exports = { crear };
+// Devuelve un pedido del cliente autenticado
+const consultar = async (req, res) => {
+    const pedido = await pedidoService.consultarPedido(
+        req.params.pedidoId,
+        req.usuarioActual
+    );
+
+    res.status(200).json({ pedido });
+};
+
+module.exports = { crear, consultar, };

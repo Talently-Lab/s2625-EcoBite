@@ -43,4 +43,18 @@ const crear = (datos, db=prisma) => {
     });
 };
 
-module.exports = { crear };
+// Busca un pedido unicamente dentro de los pedidos del cliente
+const findByIdYUsuario = ( pedidoId, usuarioId, db = prisma) => {
+    return db.pedido.findFirst({
+        where: {
+            id: pedidoId,
+            usuarioId,
+        },
+        include: {
+            items: true,
+            envio: true,
+        },
+    });
+};
+
+module.exports = { crear, findByIdYUsuario, };
