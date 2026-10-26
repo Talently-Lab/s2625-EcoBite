@@ -9,6 +9,7 @@ const { calcularAhorroEnvasesGramos,
 const envioRepository = require("../repositories/envio.repository");
 const prisma = require("../config/prisma");
 const { validarUuid } = require("../validators/uuid.validator");
+const { validarPaginacion } = require("../validators/paginacion.validator");
 
 // Comprueba el permiso antes de procesar los datos
 const autorizarCrecion = (usuarioActual) => {
@@ -95,6 +96,41 @@ const consultarPedido = async (pedidoId, usuarioActual) => {
     }
 
     return { ...pedido, impactoEstimado: obtenerImpactoEstimado(pedido), };
-}
+};
 
-module.exports = { crearPedido, consultarPedido };
+// Comprueba el rol y obtiene el restaurante asignado al gerente
+const obtenerRestauranteDelGerente = (usuarioActual) => {
+    if (!usuarioActual || usuarioActual.nombreRol !== "gerente_restaurante") {
+        throw new AppError("Solo los gerentes pueden consultar los pedidos del restaurante", 403);
+    }
+
+    if (!usuarioActual.restauranteId) {
+        throw new AppError("No tienes un restaurante asignado", 403);
+    }
+    return usuarioActual.restauranteId;
+};
+
+// Consultar los pedidos del restaurante con paginacion
+const listarPedidosRestaurante = async (query, usuarioActual) => {
+    const restauranteId = obtenerRestauranteDelGerente(usuarioActual);
+    const paginacion = validarPaginacion(query);
+
+    // Se obtienen los pedidos de la pagina soliictada
+    const pedidos = await pedidoRepository.findPorRestaurante(restauranteId, paginacion);
+
+    // cuenta todos los pedidos del restaurante, sin limitar por pagina
+    const total = await pedidoRepository.contarPorRestaurante(restauranteId);
+
+    return {
+        pedidos,
+        paginacion: {
+            pagina: paginacion.pagina,
+            limite: paginacion.limite,
+            total,
+            // redondea hacia arriba para incluir la ultima pagina incompleta
+            totalPaginas: Math.ceil(total / paginacion.limite),
+        },
+    };
+};
+
+module.exports = { crearPedido, consultarPedido, listarPedidosRestaurante, };

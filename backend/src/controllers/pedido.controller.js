@@ -23,4 +23,13 @@ const consultar = async (req, res) => {
     res.status(200).json({ pedido });
 };
 
-module.exports = { crear, consultar, };
+// Devuelve los pedidos del restaurante del gerente autenticado
+const listarRestaurante = async (req, res) => {
+    const resultado = await pedidoService.listarPedidosRestaurante(
+        req.query,
+        req.usuarioActual
+    );
+    res.status(200).json(resultado);
+};
+
+module.exports = { crear, consultar, listarRestaurante };

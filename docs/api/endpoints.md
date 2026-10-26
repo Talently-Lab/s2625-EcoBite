@@ -1,6 +1,6 @@
 # API EcoBite - Endpoints
 
-**Última actualización:** 2026-10-25
+**Última actualización:** 2026-10-26
 **Responsable:** Brandon (Backend)
 
 Base URL (local): `http://localhost:3000/api`
@@ -631,6 +631,139 @@ Limitaciones actuales:
 - Repetir una petición válida crea otro pedido: todavía no hay idempotencia.
 - No se implementan en este endpoint pagos ni cambios posteriores de estado.
 - La asignación y aceptación del delivery se implementarán por separado.
+
+### GET /pedidos/restaurante
+
+Lista los pedidos del restaurante asignado al gerente autenticado.
+
+**Autenticación:** requiere token de un usuario activo con rol
+`gerente_restaurante` y restaurante asignado.
+
+**Método:** GET
+**URL de ejemplo:** `http://localhost:3000/api/pedidos/restaurante?pagina=1&limite=2`
+**Body:** no se envía.
+
+Parámetros opcionales:
+
+| Parámetro | Predeterminado | Reglas |
+|---|---|---|
+| pagina | 1 | Entero positivo |
+| limite | 20 | Entero entre 1 y 100 |
+
+Reglas:
+
+- El restaurante se obtiene del usuario autenticado.
+- Enviar `restauranteId` en la URL no cambia el restaurante consultado:
+  ese parámetro se ignora.
+- Devuelve pedidos de todos los estados.
+- Los pedidos se ordenan del más reciente al más antiguo,
+  con desempate por ID.
+- El nombre del plato corresponde al menú actual.
+- El precio unitario corresponde al valor guardado al crear el pedido.
+- No modifica registros.
+
+Respuesta 200 — ejemplo con siete pedidos y límite de dos:
+
+```json
+{
+  "pedidos": [
+    {
+      "id": "96508f98-a4c4-4f83-a8ee-c84fc4fc1b03",
+      "restauranteId": "7be4dd88-9bff-4994-b985-073256525740",
+      "fecha": "2026-10-23T03:15:34.598Z",
+      "estado": "pendiente",
+      "montoTotal": "200",
+      "items": [
+        {
+          "platoId": "075a0868-3e04-4fd9-9995-92af6227937e",
+          "cantidad": 2,
+          "precioUnitario": "100",
+          "plato": {
+            "nombre": "Ensalada verde"
+          }
+        }
+      ]
+    },
+    {
+      "id": "d541792c-6210-4a62-bc33-2cbe330cfba7",
+      "restauranteId": "7be4dd88-9bff-4994-b985-073256525740",
+      "fecha": "2026-10-23T02:59:48.685Z",
+      "estado": "pendiente",
+      "montoTotal": "200",
+      "items": [
+        {
+          "platoId": "075a0868-3e04-4fd9-9995-92af6227937e",
+          "cantidad": 2,
+          "precioUnitario": "100",
+          "plato": {
+            "nombre": "Ensalada verde"
+          }
+        }
+      ]
+    }
+  ],
+  "paginacion": {
+    "pagina": 1,
+    "limite": 2,
+    "total": 7,
+    "totalPaginas": 4
+  }
+}
+```
+
+Interpretación de la paginación:
+
+- `pagina`: página solicitada.
+- `limite`: máximo de pedidos devueltos por página.
+- `total`: cantidad total de pedidos del restaurante.
+- `totalPaginas`: resultado de dividir `total` entre `limite`,
+  redondeado hacia arriba.
+- El listado y el conteo se consultan por separado; pueden diferir
+  temporalmente si se crean pedidos durante la consulta.
+
+Una página sin resultados devuelve 200 con un arreglo vacío:
+
+```json
+{
+  "pedidos": [],
+  "paginacion": {
+    "pagina": 5,
+    "limite": 2,
+    "total": 7,
+    "totalPaginas": 4
+  }
+}
+```
+
+Si el restaurante no tiene pedidos, `total` y `totalPaginas` son 0.
+
+Errores:
+
+| Código | Motivo |
+|---|---|
+| 400 | Paginación inválida o fuera de rango |
+| 401 | Token ausente, inválido o expirado; usuario inexistente |
+| 403 | Cuenta desactivada, rol no autorizado o gerente sin restaurante asignado |
+| 500 | Error interno del servidor |
+
+Ejemplo de error 400:
+
+```json
+{
+  "error": "limite no puede superar 100"
+}
+```
+
+Ejemplo de error 403 para un gerente sin restaurante:
+
+```json
+{
+  "error": "No tienes un restaurante asignado"
+}
+```
+
+---
+
 
 
 ### GET /pedidos/:pedidoId

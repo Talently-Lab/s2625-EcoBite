@@ -57,4 +57,46 @@ const findByIdYUsuario = ( pedidoId, usuarioId, db = prisma) => {
     });
 };
 
-module.exports = { crear, findByIdYUsuario, };
+// Consulta una pagina de pedidos del restaurante indicado
+const findPorRestaurante = (
+    restauranteId, { limite, desplazamiento }, db = prisma) => {
+        return db.pedido.findMany({
+            where: { restauranteId },
+            skip: desplazamiento,
+            take: limite,
+            orderBy: [
+                { fecha: "desc" },
+                { id: "desc" },
+            ],
+            select: {
+                id: true,
+                restauranteId: true,
+                fecha: true,
+                estado: true,
+                montoTotal: true,
+                items: {
+                    select: {
+                        platoId: true,
+                        cantidad: true,
+                        precioUnitario: true,
+                        plato: {
+                            select: {
+                                nombre: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+};
+
+// Cuenta los pedidos del mismo restaurante para calcular las paginas
+const contarPorRestaurante = (restauranteId, db = prisma) => {
+    return db.pedido.count({
+        where: { restauranteId },
+    });
+};
+
+module.exports = { crear, findByIdYUsuario,
+                   findPorRestaurante, contarPorRestaurante,
+};
