@@ -1,44 +1,78 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 
 const CartContext = createContext()
 
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState([])
+  // Inicializamos desde localStorage si existe
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ecobite_cart')
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
 
+  // Guardar en localStorage cada vez que cambian los productos
+  useEffect(() => {
+    localStorage.setItem('ecobite_cart', JSON.stringify(cartItems))
+  }, [cartItems])
+
+  // 1. Agregar producto al carrito
   const addToCart = (product, quantity = 1) => {
-    setCart((prevCart) => {
-      const existingIndex = prevCart.findIndex((item) => item.id === product.id)
+    setCartItems((prevItems) => {
+      const existingIndex = prevItems.findIndex((item) => item.id === product.id)
       if (existingIndex > -1) {
-        const updated = [...prevCart]
+        const updated = [...prevItems]
         updated[existingIndex].quantity += quantity
         return updated
       }
-      return [...prevCart, { ...product, quantity }]
+      return [...prevItems, { ...product, quantity }]
     })
   }
 
-  const removeFromCart = (id) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== id))
+  // 2. Eliminar o decrementar producto
+  const removeFromCart = (productId) => {
+    setCartItems((prevItems) => prevItems.filter((item) => item.id !== productId))
   }
 
-  const clearCart = () => setCart([])
+  const updateQuantity = (productId, newQuantity) => {
+    if (newQuantity <= 0) {
+      removeFromCart(productId)
+      return
+    }
+    setCartItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === productId ? { ...item, quantity: newQuantity } : item
+      )
+    )
+  }
 
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)
-  
-  const totalPrice = cart.reduce((sum, item) => {
-    const cleanPrice = parseFloat(
-      typeof item.price === 'string' ? item.price.replace(/[^0-9.]/g, '') : item.price
-    ) || 0
-    return sum + cleanPrice * item.quantity
-  }, 0)
+  // 3. Vaciar carrito
+  const clearCart = () => {
+    setCartItems([])
+    localStorage.removeItem('ecobite_cart')
+  }
+
+  // 4. Cálculos automáticos de totales
+  const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0)
+  const totalItemsCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, totalItems, totalPrice }}>
+    <CartContext.Provider
+      value={{
+        cartItems,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        subtotal,
+        totalItemsCount,
+      }}
+    >
       {children}
     </CartContext.Provider>
   )
 }
 
-export function useCart() {
-  return useContext(CartContext)
-}
+export const useCart = () => useContext(CartContext)

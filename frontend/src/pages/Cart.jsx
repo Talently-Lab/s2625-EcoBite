@@ -1,14 +1,15 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext' // Ajusta según tu estructura
+import { createOrder } from '../services/orders' // Importamos el servicio
 
 export default function Cart() {
   const navigate = useNavigate()
-  const { cart, updateQuantity, removeFromCart, clearCart } = useCart()
+  const { cartItems: cart, updateQuantity, removeFromCart, clearCart } = useCart()
 
-  // Estados opcionales para los utensilios y servilletas
   const [servilletas, setServilletas] = useState(true)
   const [utensilios, setUtensilios] = useState(false)
+  const [loading, setLoading] = useState(false) // Estado de carga para el botón
 
   // Costos de los opcionales
   const PRECIO_SERVILLETAS = 500
@@ -32,6 +33,30 @@ export default function Cart() {
 
   // Cantidad total de productos
   const totalProductosCount = cart ? cart.reduce((acc, item) => acc + item.quantity, 0) : 0
+
+  const handleCheckout = async () => {
+    // Si no hay token en el navegador, asignamos uno de prueba para avanzar en desarrollo
+    let token = localStorage.getItem('token')
+    if (!token) {
+      token = 'token_demo_local_123'
+      localStorage.setItem('token', token)
+    }
+
+    try {
+      setLoading(true)
+      
+      // Llamamos al servicio createOrder (con la simulación mock)
+      await createOrder(cart, totalPedido, token)
+
+      alert('¡Pedido confirmado con éxito!')
+      clearCart()
+      navigate('/profile')
+    } catch (error) {
+      alert(`No se pudo procesar el pedido: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFAF7] text-gray-800 font-sans pb-28">
@@ -193,14 +218,11 @@ export default function Cart() {
         <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 p-4 z-30">
           <div className="max-w-md mx-auto">
             <button
-              onClick={() => {
-                alert('¡Pedido confirmado! Redirigiendo a tu impacto...')
-                clearCart()
-                navigate('/profile')
-              }}
-              className="w-full py-3.5 bg-[#3D2314] hover:bg-[#2A180D] text-white font-semibold rounded-2xl shadow-md transition flex items-center justify-between px-6 cursor-pointer"
+              onClick={handleCheckout}
+              disabled={loading}
+              className="w-full py-3.5 bg-[#3D2314] hover:bg-[#2A180D] text-white font-semibold rounded-2xl shadow-md transition flex items-center justify-between px-6 cursor-pointer disabled:opacity-50"
             >
-              <span>Confirmar pedido</span>
+              <span>{loading ? 'Procesando...' : 'Confirmar pedido'}</span>
               <span className="text-base">${totalPedido.toLocaleString()}</span>
             </button>
           </div>
