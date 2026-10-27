@@ -32,4 +32,22 @@ const listarRestaurante = async (req, res) => {
     res.status(200).json(resultado);
 };
 
-module.exports = { crear, consultar, listarRestaurante };
+// Marca como listo un pedido del restaurante del gerente
+const marcarListo = async (req, res) => {
+    const pedido = await pedidoService.marcarPedidoListo(
+        req.params.pedidoId,
+        req.usuarioActual
+    );
+
+    res.status(200).json({
+        message: "Pedido marcado como listo",
+        pedido,
+    });
+};
+
+module.exports = {
+    crear,
+    consultar,
+    listarRestaurante,
+    marcarListo,
+};

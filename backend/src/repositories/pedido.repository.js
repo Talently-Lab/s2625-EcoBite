@@ -97,6 +97,41 @@ const contarPorRestaurante = (restauranteId, db = prisma) => {
     });
 };
 
-module.exports = { crear, findByIdYUsuario,
-                   findPorRestaurante, contarPorRestaurante,
+// Busca el pedido dentro del restaurante autorizado
+const findByIdYRestaurante = (pedidoId, restauranteId, db = prisma) => {
+    return db.pedido.findFirst({
+        where: {
+            id: pedidoId,
+            restauranteId,
+        },
+        select: {
+            id: true,
+            restauranteId: true,
+            estado: true,
+        },
+    });
+};
+
+
+//cambia el estado solo si el pedido todavía está pendiente
+const marcarListoSiPendiente = (pedidoId, restauranteId, db= prisma) => {
+    return db.pedido.updateMany({
+        where: {
+            id: pedidoId,
+            restauranteId,
+            estado: "pendiente",
+        },
+        data: {
+            estado: "listo",
+        },
+    });
+};
+
+module.exports = {
+    crear,
+    findByIdYUsuario,
+    findPorRestaurante,
+    contarPorRestaurante,
+    findByIdYRestaurante,
+    marcarListoSiPendiente,
 };

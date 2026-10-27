@@ -101,7 +101,7 @@ const consultarPedido = async (pedidoId, usuarioActual) => {
 // Comprueba el rol y obtiene el restaurante asignado al gerente
 const obtenerRestauranteDelGerente = (usuarioActual) => {
     if (!usuarioActual || usuarioActual.nombreRol !== "gerente_restaurante") {
-        throw new AppError("Solo los gerentes pueden consultar los pedidos del restaurante", 403);
+        throw new AppError("Solo los gerentes pueden gestionar los pedidos del restaurante", 403);
     }
 
     if (!usuarioActual.restauranteId) {
@@ -133,4 +133,29 @@ const listarPedidosRestaurante = async (query, usuarioActual) => {
     };
 };
 
-module.exports = { crearPedido, consultarPedido, listarPedidosRestaurante, };
+// Marca como listo un pedido pendiente del restaurante del gerente
+const marcarPedidoListo = async (pedidoId, usuarioActual) => {
+    const restauranteId = obtenerRestauranteDelGerente(usuarioActual);
+    const id = validarUuid(pedidoId, "El ID del pedido");
+
+    const pedido = await pedidoRepository.findByIdYRestaurante(id, restauranteId);
+
+    if (!pedido) {
+        throw new AppError("Pedido no encontrado", 404);
+    }
+
+    const resultado = await pedidoRepository.marcarListoSiPendiente(id, restauranteId);
+
+    if (resultado.count !== 1) {
+        throw new AppError("Solo puedes marcar como listo un pedido pendiente", 409);
+    }
+
+    return { ...pedido, estado: "listo" };
+};
+
+module.exports = {
+    crearPedido,
+    consultarPedido,
+    listarPedidosRestaurante,
+    marcarPedidoListo,
+};

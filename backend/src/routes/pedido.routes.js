@@ -9,5 +9,6 @@ const router = Router();
 router.post("/", verificarToken, cargarUsuarioActual, autorizarRoles("cliente"), pedidoController.crear);
 router.get("/restaurante", verificarToken, cargarUsuarioActual, autorizarRoles("gerente_restaurante"), pedidoController.listarRestaurante);
 router.get("/:pedidoId", verificarToken, cargarUsuarioActual, autorizarRoles("cliente"), pedidoController.consultar);
+router.patch("/:pedidoId/listo", verificarToken, cargarUsuarioActual, autorizarRoles("gerente_restaurante"), pedidoController.marcarListo);
 
 module.exports = router;

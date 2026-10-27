@@ -760,6 +760,73 @@ Ejemplo de error 403 para un gerente sin restaurante:
 {
   "error": "No tienes un restaurante asignado"
 }
+
+```
+
+---
+
+### PATCH /pedidos/:pedidoId/listo
+
+Marca un pedido pendiente como listo para su entrega.
+
+**Autenticación:** requiere token de un usuario activo con rol
+`gerente_restaurante` y restaurante asignado.
+
+**Body:** no se envía.
+
+Ejemplo:
+
+`PATCH /api/pedidos/96508f98-a4c4-4f83-a8ee-c84fc4fc1b03/listo`
+
+Reglas:
+
+- `pedidoId` debe ser un UUID válido.
+- El pedido debe pertenecer al restaurante del gerente autenticado.
+- Solo permite cambiar de `pendiente` a `listo`.
+- No permite elegir otro estado mediante el body.
+- Repetir la operación sobre un pedido listo devuelve 409.
+- No asigna un delivery ni modifica el estado del envío.
+- La actualización comprueba el restaurante y el estado pendiente
+  en la misma operación de escritura.
+
+Respuesta 200:
+
+```json
+{
+  "message": "Pedido marcado como listo",
+  "pedido": {
+    "id": "96508f98-a4c4-4f83-a8ee-c84fc4fc1b03",
+    "restauranteId": "7be4dd88-9bff-4994-b985-073256525740",
+    "estado": "listo"
+  }
+}
+```
+
+Errores:
+
+| Código | Motivo |
+|---|---|
+| 400 | Identificador del pedido inválido |
+| 401 | Token ausente, inválido o expirado; usuario inexistente |
+| 403 | Cuenta desactivada, rol no autorizado o gerente sin restaurante |
+| 404 | Pedido inexistente o perteneciente a otro restaurante |
+| 409 | El pedido ya no está pendiente |
+| 500 | Error interno del servidor |
+
+Ejemplo de error 409:
+
+```json
+{
+  "error": "Solo puedes marcar como listo un pedido pendiente"
+}
+```
+
+Un pedido ajeno devuelve el mismo error que uno inexistente:
+
+```json
+{
+  "error": "Pedido no encontrado"
+}
 ```
 
 ---
