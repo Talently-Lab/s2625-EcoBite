@@ -223,6 +223,8 @@ model Envio {
   id               String      @id @default(uuid()) @db.Uuid
   pedidoId         String      @unique @map("pedido_id") @db.Uuid
   fechaEnvio       DateTime    @default(now()) @map("fecha_envio")
+  fechaAceptacion  DateTime?   @map("fecha_aceptacion") @db.Timestamptz(3)
+  fechaEntrega     DateTime?   @map("fecha_entrega") @db.Timestamptz(3)
   deliveryId       String?     @map("delivery_id") @db.Uuid
   distanciaKm      Decimal     @default(1.50) @map("distancia_km") @db.Decimal(5, 2)
   restauranteId    String      @map("restaurante_id") @db.Uuid

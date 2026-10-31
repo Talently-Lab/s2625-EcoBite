@@ -127,6 +127,40 @@ const marcarListoSiPendiente = (pedidoId, restauranteId, db= prisma) => {
     });
 };
 
+// CAmbia el pedido a un transito si esta listo y su envio corresponde al delivery
+const marcarEnTransitoSiListo = (pedidoId, deliveryId, db = prisma) => {
+    return db.pedido.updateMany({
+        where: {
+            id: pedidoId,
+            estado: "listo",
+            envio: {
+                deliveryId,
+                estado: "en_transito",
+            },
+        },
+        data: {
+            estado: "en_transito",
+        },
+    });
+};
+
+// Marca el pedido como entregado si su envio ya fue entregado por ese delivery
+const marcarEntregadoSiEnTransito = (pedidoId, deliveryId, db = prisma) => {
+    return db.pedido.updateMany({
+        where: {
+            id: pedidoId,
+            estado: "en_transito",
+            envio: {
+                deliveryId,
+                estado: "entregado",
+            },
+        },
+        data: {
+            estado: "entregado",
+        },
+    });
+};
+
 module.exports = {
     crear,
     findByIdYUsuario,
@@ -134,4 +168,6 @@ module.exports = {
     contarPorRestaurante,
     findByIdYRestaurante,
     marcarListoSiPendiente,
+    marcarEnTransitoSiListo,
+    marcarEntregadoSiEnTransito,
 };
