@@ -62,4 +62,7 @@ const calcularAhorroTransporteGramos = (distaciaKm) => {
     return ((diferenciaCentesimas * 80) / 100).toFixed(2);
 };
 
-module.exports = { calcularAhorroEnvasesGramos, calcularAhorroTransporteGramos, };
+module.exports = {
+    calcularAhorroEnvasesGramos,
+    calcularAhorroTransporteGramos,
+};

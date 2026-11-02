@@ -820,4 +820,51 @@ Comprueba que la API responde. **Body:** ninguno.
 - [ ] Documentar endpoint y formato final de imágenes cuando se implemente.
 
 
+## Estadísticas del administrador
+
+### `GET /dashboard/stats`
+
+Devuelve los totales históricos de pedidos entregados de toda la plataforma.
+
+**Acceso:** token de administrador activo
+**Body:** ninguno
+**Parámetros:** no requiere
+
+**Respuesta 200:**
+
+```json
+{
+  "alcance": "historico",
+  "estadoPedido": "entregado",
+  "pedidosEntregados": 2,
+  "ventasTotales": "400.00",
+  "impacto": {
+    "ahorroEnvasesKg": "0.400",
+    "ahorroTransporteKg": "0.000",
+    "ahorroTotalKg": "0.400",
+    "pedidosSinDatosEnvases": 0,
+    "pedidosSinDatosTransporte": 0
+  }
+}
+```
+
+- Solo incluye pedidos en estado `entregado`, sin filtro de fechas.
+- `ventasTotales` es la suma de los importes de esos pedidos.
+- El ahorro usa las cantidades históricas de envases de `itempedido`.
+- Los ahorros se devuelven en kilogramos, como texto con tres decimales.
+- Con distancia de 1.5 km, el ahorro de transporte es cero.
+- Si falta información, el componente afectado y el ahorro total son `null`.
+  Los contadores indican cuántos pedidos tienen información incompleta.
+- Sin pedidos entregados, devuelve conteo cero, ventas `"0.00"` y ahorros `"0.000"`.
+- El endpoint no incluye todavía series semanales ni métricas de abandono.
+
+**Errores:**
+
+| Código | Motivo |
+|---|---|
+| 401 | Token ausente, inválido o expirado; usuario inexistente |
+| 403 | Cuenta desactivada o rol distinto de admin |
+| 500 | Error interno |
+
+
 > **Nota de alcance:** los endpoints de envíos fueron implementados y probados localmente en `feature/endpoints-pedidos`; su disponibilidad en `main` depende de integrar la rama. La subida de imágenes y la cancelación todavía no están implementadas.
