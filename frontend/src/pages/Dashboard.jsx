@@ -10,8 +10,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Aquí consumiremos los datos de la API del dashboard o pedidos
-    // Usaremos datos simulados si el backend no está levantado por Docker
     const fetchDashboardData = async () => {
       try {
         setLoading(true);

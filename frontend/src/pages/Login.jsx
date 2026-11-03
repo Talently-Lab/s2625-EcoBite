@@ -9,43 +9,59 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(false)
 
-    // Validación según Figma: Si están vacíos o no cumplen requisitos muestra el estado de error
     if (!email || !password) {
       setError(true)
+      setErrorMessage('Datos no válidos. Volvé a intentarlo.')
       return
     }
 
     setSubmitting(true)
     try {
-      // Simulación de llamada de sesión exitosa
-      const mockUser = { name: 'Juan Perez', email }
-      const mockToken = 'mock-jwt-token'
-      login(mockUser, mockToken)
+      // 1. Petición REAL al backend en Docker (usando la variable VITE_API_URL de tu .env)
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+     const response = await fetch(`${apiUrl}/api/auth/login`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ email,contrasena: password }),
+})
+
+      if (!response.ok) {
+        throw new Error('Credenciales incorrectas')
+      }
+
+      // 2. Leemos la respuesta real que envía el backend
+      const data = await response.json()
+      
+      // 3. Guardamos los datos reales y el token devuelto por el servidor
+      login(data.user, data.token)
       navigate('/')
+
     } catch (err) {
       setError(true)
+      setErrorMessage(err.message || 'Error al conectar con el servidor')
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-
-    
-<div className="min-h-screen bg-[#333333]/60 backdrop-blur-xs flex items-center justify-center p-4 font-sans">      
+    <div className="min-h-screen bg-[#333333]/60 backdrop-blur-xs flex items-center justify-center p-4 font-sans">    
       <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 space-y-5 shadow-xl animate-in slide-in-from-bottom duration-300">
         
         <h2 className="text-center font-bold text-base sm:text-lg text-[#3A2E2B]">
           Conéctate a EcoBite
         </h2>
 
-        {/* Botones Sociales (Google / Facebook) */}
+        {/* Botones Sociales */}
         <div className="grid grid-cols-2 gap-3">
           <button type="button" className="flex items-center justify-center gap-2 py-2 px-3 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer">
             <span>G</span> Google
@@ -100,21 +116,18 @@ export default function Login() {
             />
           </div>
 
-          {/* Enlace Olvidaste Contraseña */}
           <div className="text-left">
             <button type="button" className="text-[10px] text-gray-500 hover:underline">
               ¿Olvidaste la contraseña?
             </button>
           </div>
 
-          {/* Estado de Error según Frame 219 de Figma */}
           {error && (
             <p className="text-[11px] font-bold text-red-600 text-left">
-              Datos no válidos. Volvé a intentarlo.
+              {errorMessage || 'Datos no válidos. Volvé a intentarlo.'}
             </p>
           )}
 
-          {/* Botón Iniciar Sesión */}
           <button
             type="submit"
             disabled={submitting}
@@ -124,7 +137,6 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Enlace a Registro */}
         <div className="text-center pt-1">
           <p className="text-xs text-gray-500">
             ¿No estás registrado?{' '}

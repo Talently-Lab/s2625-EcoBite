@@ -7,8 +7,11 @@ function getSessionId() {
   return id
 }
 
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
 export function trackEvent(nombre_evento, rol_usuario, propiedades = {}) {
   const body = JSON.stringify({
+    id: crypto.randomUUID(), // Requerido por el backend en formato UUID v4
     nombre_evento,
     rol_usuario,
     session_id: getSessionId(),
@@ -16,18 +19,12 @@ export function trackEvent(nombre_evento, rol_usuario, propiedades = {}) {
     propiedades,
   })
   
-  const headers = { 'Content-Type': 'application/json' }
-  const endpoint = '/eventos' // O la URL completa de tu backend si no usas proxy de Vite
+  const endpoint = `${apiUrl}/api/eventos`
 
-  // Envío seguro sin bloquear la interfaz
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon(endpoint, new Blob([body], headers))
-  } else {
-    fetch(endpoint, {
-      method: 'POST',
-      headers,
-      body,
-      keepalive: true,
-    }).catch(() => {})
-  }
+  fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+    keepalive: true,
+  }).catch(() => {})
 }

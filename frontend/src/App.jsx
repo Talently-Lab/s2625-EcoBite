@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import StoreDetail from './pages/StoreDetail'
 import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
+import PedidoDetalle from './pages/PedidoDetalle';
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile' 
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/store/:id" element={<StoreDetail />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/pedidos/:pedidoId" element={<PedidoDetalle />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} /> 

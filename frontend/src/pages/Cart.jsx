@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useCart } from '../context/CartContext' // Ajusta según tu estructura
-import { createOrder } from '../services/orders' // Importamos el servicio
+import { useCart } from '../context/CartContext' 
+import { createOrder } from '../services/orders'
 
 export default function Cart() {
   const navigate = useNavigate()
@@ -9,7 +9,7 @@ export default function Cart() {
 
   const [servilletas, setServilletas] = useState(true)
   const [utensilios, setUtensilios] = useState(false)
-  const [loading, setLoading] = useState(false) // Estado de carga para el botón
+  const [loading, setLoading] = useState(false)
 
   // Costos de los opcionales
   const PRECIO_SERVILLETAS = 500
@@ -35,7 +35,6 @@ export default function Cart() {
   const totalProductosCount = cart ? cart.reduce((acc, item) => acc + item.quantity, 0) : 0
 
   const handleCheckout = async () => {
-    // Si no hay token en el navegador, asignamos uno de prueba para avanzar en desarrollo
     let token = localStorage.getItem('token')
     if (!token) {
       token = 'token_demo_local_123'
@@ -45,12 +44,16 @@ export default function Cart() {
     try {
       setLoading(true)
       
-      // Llamamos al servicio createOrder (con la simulación mock)
-      await createOrder(cart, totalPedido, token)
+      // Llamamos al servicio createOrder y obtenemos la respuesta
+      const respuesta = await createOrder(cart, totalPedido, token)
+      
+      // Extraemos el ID del pedido (compatible con la estructura del backend o mock)
+      const pedidoId = respuesta?.pedido?.id || respuesta?.id || '1'
 
-      alert('¡Pedido confirmado con éxito!')
       clearCart()
-      navigate('/profile')
+      
+      // Redirigimos a la vista de seguimiento de pedido en lugar de usar alert
+      navigate(`/pedidos/${pedidoId}`)
     } catch (error) {
       alert(`No se pudo procesar el pedido: ${error.message}`)
     } finally {

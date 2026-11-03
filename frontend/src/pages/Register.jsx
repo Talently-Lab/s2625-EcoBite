@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { trackEvent } from '../services/analytics' // 👈 Importamos el tracker
+import { trackEvent } from '../services/analytics'
 
 export default function Register() {
   const navigate = useNavigate()
   const { register } = useAuth()
 
-  const [name, setName] = useState('')
+  const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [contrasena, setContrasena] = useState('')
   const [error, setError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  // 1. Evento de visita a la página de registro
+  // 1. Evento de visita a la página de registro (permitido por el backend)
   useEffect(() => {
     trackEvent('visita_pagina_registro', 'cliente')
   }, [])
 
-  // 2. Evento de clic/foco en el campo email (solo una vez)
+  // 2. Evento de clic/foco en el campo email (permitido por el backend)
   const handleEmailFocus = () => {
     trackEvent('click_campo_email', 'cliente')
   }
@@ -26,23 +27,25 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(false)
+    setErrorMessage('')
 
-    if (!name || !email || !password) {
+    if (!nombre || !email || !contrasena) {
       setError(true)
+      setErrorMessage('Por favor completa todos los campos.')
       return
     }
 
     setSubmitting(true)
     try {
-      // Llamada real al backend para registrar
-      await register(name, email, password)
+      await register({ nombre, email, contrasena })
       
-      // 3. Evento exclusivo al confirmar la creación exitosa de la cuenta
-      trackEvent('click_boton_crear_cuenta', 'cliente')
+      // NOTA: Borramos el trackEvent de 'click_boton_crear_cuenta' 
+      // porque la documentación indica que lo genera el backend automáticamente.
 
-      navigate('/')
+      navigate('/login') // O a donde corresponda (el registro no devuelve token según la doc)
     } catch (err) {
       setError(true)
+      setErrorMessage(err.message || 'Datos no válidos. Volvé a intentarlo.')
     } finally {
       setSubmitting(false)
     }
@@ -56,28 +59,26 @@ export default function Register() {
           Conéctate a EcoBite
         </h2>
 
-        {/* ... botones sociales ... */}
-
         <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Nombre */}
+          {/* Nombre completo */}
           <div className="space-y-1">
             <label className="text-[11px] font-semibold text-gray-700">Nombre completo</label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => { setName(e.target.value); if (error) setError(false); }}
+              value={nombre}
+              onChange={(e) => { setNombre(e.target.value); if (error) setError(false); }}
               placeholder="Ingresá tu nombre completo"
               className="w-full px-3.5 py-2.5 text-xs rounded-xl border bg-gray-50 border-gray-200"
             />
           </div>
 
-          {/* Email con el evento de focus */}
+          {/* Email */}
           <div className="space-y-1">
             <label className="text-[11px] font-semibold text-gray-700">Email</label>
             <input
               type="email"
               value={email}
-              onFocus={handleEmailFocus} // 👈 Disparador del paso 2
+              onFocus={handleEmailFocus}
               onChange={(e) => { setEmail(e.target.value); if (error) setError(false); }}
               placeholder="Ingresá tu email"
               className="w-full px-3.5 py-2.5 text-xs rounded-xl border bg-gray-50 border-gray-200"
@@ -89,19 +90,23 @@ export default function Register() {
             <label className="text-[11px] font-semibold text-gray-700">Contraseña</label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); if (error) setError(false); }}
+              value={contrasena}
+              onChange={(e) => { setContrasena(e.target.value); if (error) setError(false); }}
               placeholder="Ingresá tu contraseña"
               className="w-full px-3.5 py-2.5 text-xs rounded-xl border bg-gray-50 border-gray-200"
             />
           </div>
 
-          {error && <p className="text-[11px] font-bold text-red-600">Datos no válidos. Volvé a intentarlo.</p>}
+          {error && (
+            <p className="text-[11px] font-bold text-red-600">
+              {errorMessage || 'Datos no válidos. Volvé a intentarlo.'}
+            </p>
+          )}
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 bg-[#3D2314] text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-sm mt-2"
+            className="w-full py-3 bg-[#3D2314] text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-sm mt-2 disabled:opacity-50"
           >
             {submitting ? 'Creando cuenta...' : 'Crear cuenta'}
           </button>
