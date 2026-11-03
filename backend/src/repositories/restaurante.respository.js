@@ -20,8 +20,8 @@ const findAllActive = () => {
 };
 
 //Busca un restaurante por su identificador
-const findById = (id) =>{
-    return prisma.restaurante.findUnique({
+const findById = (id, db = prisma) =>{
+    return db.restaurante.findUnique({
         where: { id },
         select: {
             id: true,
