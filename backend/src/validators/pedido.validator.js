@@ -64,9 +64,36 @@ const validaDomicilioDestino = (valor) => {
     return domicilio;
 };
 
-// Valida los datos del carrito para crear un pedido
+// Comprueba que la coordenada sea un número dentro del rango permitido
+const validarCoordenada = (valor, campo, minimo, maximo) => {
+    if (
+        typeof valor !== "number" ||
+        !Number.isFinite(valor) || // Rechaza valores numéricos que no sean finitos
+        valor < minimo ||
+        valor > maximo
+    ) {
+        throw new AppError(
+            `${campo} debe ser un número entre ${minimo} y ${maximo}`,
+            400
+        );
+    }
+
+    return valor;
+};
+
+// Valida los datos y las coordenadas para crear un pedido
 const validarDatosPedido = (datos) => {
-    validarCampos(datos, ["restauranteId", "items", "domicilioDestino"], "El pedido");
+    validarCampos(
+        datos,
+        [
+            "restauranteId",
+            "items",
+            "domicilioDestino",
+            "latitudDestino",
+            "longitudDestino",
+        ],
+        "El pedido"
+    );
 
     return {
         restauranteId: validarUuid(
@@ -75,6 +102,18 @@ const validarDatosPedido = (datos) => {
         ),
         items: validarItems(datos.items),
         domicilioDestino: validaDomicilioDestino(datos.domicilioDestino),
+        latitudDestino: validarCoordenada(
+            datos.latitudDestino,
+            "latitudDestino",
+            -90,
+            90
+        ),
+        longitudDestino: validarCoordenada(
+            datos.longitudDestino,
+            "longitudDestino",
+            -180,
+            180
+        ),
     };
 };
 

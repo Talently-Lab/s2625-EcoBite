@@ -10,6 +10,7 @@ const findAllActive = () => {
         select: {
             id: true,
             nombre: true,
+            descripcion: true,
             imagenUrl: true,
             domicilio: true,
             latitude: true,
@@ -26,6 +27,8 @@ const findById = (id, db = prisma) =>{
         select: {
             id: true,
             estado: true,
+            latitude: true,
+            longitude: true,
         },
     });
 };
