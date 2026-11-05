@@ -1,20 +1,25 @@
 const prisma = require("../config/prisma");
 
-// Guarda un envío pendiente
-const crear = (datos, db=prisma) => {
+// Guarda el envío con el destino y la distancia calculada
+const crear = (datos, db = prisma) => {
     return db.envio.create({
         data: {
             pedidoId: datos.pedidoId,
             restauranteId: datos.restauranteId,
             domicilioDestino: datos.domicilioDestino,
+            latitudDestino: datos.latitudDestino,
+            longitudDestino: datos.longitudDestino,
             deliveryId: null,
-            distanciaKm: "1.50",
+            distanciaKm: datos.distanciaKm,
             estado: "pendiente",
         },
         select: {
+            id: true,
             pedidoId: true,
             restauranteId: true,
             domicilioDestino: true,
+            latitudDestino: true,
+            longitudDestino: true,
             deliveryId: true,
             distanciaKm: true,
             estado: true,
@@ -100,6 +105,8 @@ const findByIdDelivery = (envioId, deliveryId, db = prisma) => {
             restauranteId: true,
             deliveryId: true,
             domicilioDestino: true,
+            latitudDestino: true,
+            longitudDestino: true,
             distanciaKm: true,
             estado: true,
             fechaEnvio: true,

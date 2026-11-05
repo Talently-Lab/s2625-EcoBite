@@ -9,6 +9,7 @@ const CAMPOS_CANTIDADES = [
 
 const CAMPOS_PERMITIDOS = [
     "nombre",
+    "descripcion",
     "precio",
     ...CAMPOS_CANTIDADES,
 ];
@@ -37,6 +38,25 @@ const validarNombre = (valor) => {
         throw new AppError("El nombre debe tener entre 1 y 200 caracteres", 400);
     }
     return nombre;
+};
+
+// Valida una descripción opcional y permite borrarla con null
+const validarDescripcion = (valor) => {
+    if (valor === null) {
+        return null;
+    }
+
+    if (typeof valor !== "string") {
+        throw new AppError("La descripcion debe ser texto o null", 400);
+    }
+
+    const descripcion = valor.trim(); // elimina espacios al principio y al final
+
+    if (Array.from(descripcion).length > 500) { // cuenta caracteres completos, incluidos emojis
+        throw new AppError("La descripcion admite hasta 500 caracteres", 400);
+    }
+
+    return descripcion === "" ? null : descripcion;
 };
 
 //valida un precio compatible con Decimal(10, 2)
@@ -85,6 +105,11 @@ const validarDatosPlato = (datos, parcial = false) => {
 
     if (!parcial || Object.hasOwn(datos, "precio")) {
         resultado.precio = validarPrecio(datos.precio);
+    }
+    if (Object.hasOwn(datos, "descripcion")) { // distingue un campo enviado de uno omitido
+        resultado.descripcion = validarDescripcion(datos.descripcion);
+    } else if (!parcial) {
+        resultado.descripcion = null;
     }
 
     return resultado;
