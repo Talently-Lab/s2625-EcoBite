@@ -5,5 +5,6 @@ const { cargarUsuarioActual, autorizarRoles } = require("../middlewares/autoriza
 const router = Router();
 
 router.get("/stats", verificarToken, cargarUsuarioActual, autorizarRoles("admin"), dashboardController.obtenerEstadisticas);
+router.get("/resumen-semanal", verificarToken, cargarUsuarioActual, autorizarRoles("admin"), dashboardController.obtenerResumenSemanal);
 
 module.exports = router;

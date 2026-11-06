@@ -9,4 +9,16 @@ const obtenerEstadisticas = async (req, res) => {
     res.status(200).json(estadisticas);
 };
 
-module.exports = { obtenerEstadisticas };
+// Devuelve las estadisticas de los ultimos siete dias
+const obtenerResumenSemanal = async (req, res) =>{
+    const resumen = await dashboardService.obtenerResumenSemanal(
+        req.usuarioActual
+    );
+
+    res.status(200).json(resumen);
+};
+
+module.exports = {
+    obtenerEstadisticas,
+    obtenerResumenSemanal,
+};

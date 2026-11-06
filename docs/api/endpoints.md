@@ -1,6 +1,6 @@
 # EcoBite — Guía de endpoints de la API
 
-**Referencia:** documentación de Backend del 05/11/2026\
+**Referencia:** documentación de Backend del 06/11/2026\
 **Base URL local:** `http://localhost:3000/api`\
 **Para:** Frontend y QA
 
@@ -919,5 +919,72 @@ Devuelve los totales históricos de pedidos entregados de toda la plataforma.
 | 403 | Cuenta desactivada o rol distinto de admin |
 | 500 | Error interno |
 
+
+### `GET /dashboard/resumen-semanal`
+
+Devuelve las estadísticas globales de los últimos siete días.
+
+**Acceso:** Bearer Token de administrador activo.
+**Body:** ninguno. **Parámetros:** no requiere.
+
+**Respuesta `200`:**
+
+| Campo | Contenido |
+|---|---|
+| `alcance` | `"ultimos_7_dias"` |
+| `estadoPedido` | `"entregado"` |
+| `periodo` | Fechas `desde` y `hasta` en UTC y campo de fecha utilizado |
+| `pedidosEntregados` | Cantidad de pedidos entregados creados en el período |
+| `ventasTotales` | Suma de sus importes, como texto con dos decimales |
+| `ticketPromedio` | Importe promedio, como texto con dos decimales |
+| `ticketMinimo` | Menor importe de pedido |
+| `ticketMaximo` | Mayor importe de pedido |
+| `impacto` | Ahorros estimados en kg y contadores de información incompleta |
+| `restaurantes` | Conteos y porcentajes actuales de activos e inactivos |
+| `transportes` | Entregas por transporte, porcentajes y datos faltantes |
+| `pedidosPorSemana` | Ocho períodos consecutivos de siete días |
+| `desgloseDiario` | Pedidos, ventas, tickets y entregas por fecha de Argentina |
+
+**Reglas del período:**
+
+- Se incluyen registros desde `desde`, inclusive, hasta `hasta`, exclusive
+- Los pedidos se filtran por `fecha` de creación y estado `entregado`
+- Los envíos se filtran por `fechaEnvio` de creación y estado `entregado`
+- No se filtra por la fecha en que se confirmó la entrega
+- Los restaurantes representan su estado actual, sin filtro de fechas
+- No son semanas de calendario: son ventanas móviles de siete días
+
+**Transporte:**
+
+- Los porcentajes se calculan sobre `entregasConTransporte`
+- `sinDatosTransporte` informa las entregas sin transporte identificable
+- Sin entregas con transporte conocido, `porcentajeBicicleta` es `null`
+- Se consulta el transporte actual del perfil del delivery, no una copia
+  histórica del vehículo utilizado en el envío
+
+**Gráficos:**
+
+- `pedidosPorSemana` se ordena de la semana más antigua (`semanasAtras: 7`)
+  a la más reciente (`semanasAtras: 0`), incluyendo semanas con cero pedidos
+- La semana `0` coincide con el período del resumen
+- `desgloseDiario` utiliza la zona `America/Argentina/Buenos_Aires`
+- Incluye únicamente fechas con pedidos o envíos seleccionados
+- Una ventana de siete días puede abarcar ocho fechas locales,
+  con el primer y último día parciales
+- Los porcentajes se redondean y pueden no sumar exactamente 100
+
+**Sin datos:**
+
+- Sin pedidos seleccionados, conteo y ventas son cero y los tickets son `null`
+- Los ahorros sin pedidos son `"0.000"`
+- Si faltan datos de impacto, el componente afectado y el total son `null`
+- Sin pedidos ni envíos seleccionados, `desgloseDiario` es `[]`
+
+**Pendiente de definición:** la tasa de abandono no se incluye.
+Un pedido `pendiente` ya fue enviado al restaurante y no demuestra,
+por sí solo, que el cliente abandonó un carrito.
+
+**Errores:** `401` sin autenticación válida; `403` cuenta desactivada
+o rol distinto de administrador; `500` error interno.
 
 > **Nota de alcance:** los endpoints de envíos fueron implementados y probados localmente en `feature/endpoints-pedidos`; su disponibilidad en `main` depende de integrar la rama. La subida de imágenes y la cancelación todavía no están implementadas.
