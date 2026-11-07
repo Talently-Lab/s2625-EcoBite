@@ -41,7 +41,130 @@ const obtenerPedidosParaImpacto = (db = prisma) => {
     });
 };
 
+// Define los pedidos entregados creados dentro del periodo
+const filtroPedidosPeriodo = (desde, hasta) => ({
+    estado: "entregado",
+    fecha: {
+        gte: desde, // Incluye el inicio del período
+        lt: hasta, // Excluye el final para evitar solapamientos entre períodos
+    },
+});
+
+// Obtiene cantidad, ventas y valores del ticket dentro del período
+const obtenerResumenVentasPeriodo = (desde, hasta, db = prisma) => {
+    return db.pedido.aggregate({
+        where: filtroPedidosPeriodo(desde, hasta),
+        _count: {
+            id: true,
+        },
+        _sum: {
+            montoTotal: true,
+        },
+        _avg: { // Calcula el importe promedio de los pedidos seleccionados
+            montoTotal: true,
+        },
+        _min: { // Obtiene el importe más bajo del período
+            montoTotal: true,
+        },
+        _max: { // Obtiene el importe más alto del período
+            montoTotal: true,
+        },
+    });
+};
+
+// Recupera las cantidades históricas y distancias del mismo período
+const obtenerPedidosParaImpactoPeriodo = (desde, hasta, db = prisma) => {
+    return db.pedido.findMany({
+        where: filtroPedidosPeriodo(desde, hasta),
+        select: {
+            id: true,
+            items: {
+                select: {
+                    cantidad: true,
+                    cantidadVasos: true,
+                    cantidadPlatos: true,
+                    cantidadCubiertos: true,
+                    cantidadRecipiente: true,
+                },
+            },
+            envio: {
+                select: {
+                    distanciaKm: true,
+                },
+            },
+        },
+    });
+};
+
+// Cuenta los restaurantes por su estado actual sin filtrar por fecha
+const contarRestaurantesPorEstado = (db = prisma) => {
+    return db.restaurante.groupBy({
+        by: ["estado"], // Agrupa los restaurantes que tienen el mismo estado
+        _count: {
+            _all: true, // Cuenta todos los registros de cada grupo
+        },
+    });
+};
+
+// Obtiene el transporte de los envíos entregados creados en el período
+const obtenerTransportesPeriodo = (desde, hasta, db = prisma) => {
+    return db.envio.findMany({
+        where: {
+            estado: "entregado",
+            fechaEnvio: {
+                gte: desde, // Incluye el inicio del período
+                lt: hasta, // Excluye el final del período
+            },
+        },
+        select: {
+            fechaEnvio: true,
+            delivery: {
+                select: {
+                    tipoTransporte: {
+                        select: {
+                            descripcion: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+};
+
+// Obtiene las fechas de los pedidos entregados dentro del período
+const obtenerFechasPedidosPeriodo = (desde, hasta, db = prisma) => {
+    return db.pedido.findMany({
+        where: filtroPedidosPeriodo(desde, hasta),
+        select: {
+            fecha: true,
+        },
+        orderBy: {
+            fecha: "asc",
+        },
+    });
+};
+
+// Obtiene fecha e importe de los pedidos entregados para el desglose diario
+const obtenerPedidosParaDesgloseDiario = (desde, hasta, db = prisma) => {
+    return db.pedido.findMany({
+        where: filtroPedidosPeriodo(desde, hasta),
+        select: {
+            fecha: true,
+            montoTotal: true,
+        },
+        orderBy: {
+            fecha: "asc",
+        },
+    });
+};
+
 module.exports = {
     obtenerResumenVentas,
     obtenerPedidosParaImpacto,
+    obtenerResumenVentasPeriodo,
+    obtenerPedidosParaImpactoPeriodo,
+    contarRestaurantesPorEstado,
+    obtenerTransportesPeriodo,
+    obtenerFechasPedidosPeriodo,
+    obtenerPedidosParaDesgloseDiario,
  };
