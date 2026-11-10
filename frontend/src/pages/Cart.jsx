@@ -79,43 +79,51 @@ export default function Cart() {
         {/* Lista de productos en el carrito */}
         <div className="space-y-3">
           {cart && cart.length > 0 ? (
-            cart.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-2xl p-3 border border-gray-100 shadow-2xs flex items-center justify-between gap-3"
-              >
-                <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                  <img
-                    src={item.img || item.image || 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60'}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+            cart.map((item) => {
+              // Lógica limpia para resolver la URL de la imagen de forma robusta
+              const imgSource = item.imagenUrl || item.imagen || item.img || item.image;
+              const finalImgUrl = imgSource 
+                ? (imgSource.startsWith('http') ? imgSource : `http://localhost:3000${imgSource}`)
+                : 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60';
 
-                <div className="flex-1">
-                  <h3 className="font-semibold text-xs sm:text-sm text-gray-900 leading-tight">
-                    {item.name}
-                  </h3>
-                  
-                  {/* Selector de cantidad (- 1 +) */}
-                  <div className="flex items-center gap-3 mt-3 bg-gray-50 border border-gray-200 rounded-full px-2 py-1 w-max">
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="w-5 h-5 flex items-center justify-center text-xs font-bold text-gray-600 hover:text-black cursor-pointer"
-                    >
-                      –
-                    </button>
-                    <span className="text-xs font-bold text-gray-800">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="w-5 h-5 flex items-center justify-center text-xs font-bold text-gray-600 hover:text-black cursor-pointer"
-                    >
-                      +
-                    </button>
+              return (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-2xl p-3 border border-gray-100 shadow-2xs flex items-center justify-between gap-3"
+                >
+                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                    <img
+                      src={finalImgUrl}
+                      alt={item.name || item.nombre}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-xs sm:text-sm text-gray-900 leading-tight">
+                      {item.name || item.nombre}
+                    </h3>
+                    
+                    {/* Selector de cantidad (- 1 +) */}
+                    <div className="flex items-center gap-3 mt-3 bg-gray-50 border border-gray-200 rounded-full px-2 py-1 w-max">
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        className="w-5 h-5 flex items-center justify-center text-xs font-bold text-gray-600 hover:text-black cursor-pointer"
+                      >
+                        –
+                      </button>
+                      <span className="text-xs font-bold text-gray-800">{item.quantity}</span>
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        className="w-5 h-5 flex items-center justify-center text-xs font-bold text-gray-600 hover:text-black cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           ) : (
             <div className="bg-white rounded-2xl p-8 text-center border border-gray-100 shadow-2xs space-y-3">
               <span className="text-3xl">🛒</span>

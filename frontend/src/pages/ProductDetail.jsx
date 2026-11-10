@@ -1,18 +1,22 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useCart } from '../context/CartContext' // Ajusta según tu ruta
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useCart } from '../context/CartContext'
+import { productsService } from '../services/productsService'
 
 export default function ProductDetail() {
   const navigate = useNavigate()
+  const { id } = useParams()
   const { addToCart } = useCart()
 
-  // Estados de personalización según el Figma
+  // Estados para los datos reales del producto
+  const [producto, setProducto] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Estados de personalización
   const [selectedMedallon, setSelectedMedallon] = useState('falafel')
   const [selectedPan, setSelectedPan] = useState('clasico')
   const [quantity, setQuantity] = useState(1)
-
-  // Precios base y opcionales
-  const precioBase = 16750
 
   const opcionesMedallon = [
     { id: 'falafel', nombre: 'Medallón de Falafel', extra: 0 },
@@ -24,7 +28,50 @@ export default function ProductDetail() {
     { id: 'clasico', nombre: 'Pan Clásico', extra: 0 },
   ]
 
-  // Calcular precio extra acumulado
+  // Cargar el producto real desde el backend
+  useEffect(() => {
+    async function fetchProductDetail() {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await productsService.getProductById(id)
+        // Manejamos si el backend devuelve un objeto directo o envuelto en .data
+        const prodData = data?.data || data
+        setProducto(prodData)
+      } catch (err) {
+        console.error('Error al cargar el detalle del producto:', err)
+        setError('No se pudo cargar el producto desde el servidor.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (id) {
+      fetchProductDetail()
+    }
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FAFAF7] flex items-center justify-center text-xs text-gray-500 font-medium">
+        Cargando detalle del producto...
+      </div>
+    )
+  }
+
+  if (error || !producto) {
+    return (
+      <div className="min-h-screen bg-[#FAFAF7] flex flex-col items-center justify-center p-4 text-center space-y-3">
+        <p className="text-xs text-amber-800">{error || 'Producto no encontrado.'}</p>
+        <button onClick={() => navigate(-1)} className="px-4 py-2 bg-[#3D2314] text-white text-xs rounded-xl cursor-pointer">
+          Volver
+        </button>
+      </div>
+    )
+  }
+
+  // Precios y cálculos basados estrictamente en propiedades en español
+  const precioBase = Number(producto.precio || producto.price || 0)
   const extraMedallon = opcionesMedallon.find(m => m.id === selectedMedallon)?.extra || 0
   const extraPan = opcionesPan.find(p => p.id === selectedPan)?.extra || 0
   const precioUnitario = precioBase + extraMedallon + extraPan
@@ -32,15 +79,15 @@ export default function ProductDetail() {
 
   const handleAgregar = () => {
     const productoParaAgregar = {
-      id: 104,
-      name: 'Hamburguesa Patagónica',
-      price: precioUnitario,
-      quantity: quantity,
-      options: {
+      id: producto.id || producto._id,
+      nombre: producto.nombre || producto.name,
+      precio: precioUnitario,
+      cantidad: quantity,
+      opciones: {
         medallon: opcionesMedallon.find(m => m.id === selectedMedallon)?.nombre,
         pan: opcionesPan.find(p => p.id === selectedPan)?.nombre,
       },
-      img: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop&q=60'
+      imagen: producto.imagen || producto.img || producto.image || producto.urlImagen || ''
     }
 
     if (addToCart) {
@@ -48,6 +95,8 @@ export default function ProductDetail() {
     }
     navigate('/cart')
   }
+
+  const imagenReal = producto.imagen || producto.img || producto.image || producto.urlImagen
 
   return (
     <div className="min-h-screen bg-[#FAFAF7] text-[#3D2314] font-sans pb-28">
@@ -61,22 +110,26 @@ export default function ProductDetail() {
           ←
         </button>
 
-        {/* Imagen Principal */}
+        {/* Imagen 100% Real de la API */}
         <div className="w-full h-72 sm:h-80 bg-white overflow-hidden flex items-center justify-center p-4">
-          <img 
-            src="https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&auto=format&fit=crop&q=80" 
-            alt="Hamburguesa Patagónica" 
-            className="w-full h-full object-contain max-w-sm"
-          />
+          {imagenReal ? (
+            <img 
+              src={imagenReal} 
+              alt={producto.nombre || producto.name} 
+              className="w-full h-full object-contain max-w-sm"
+            />
+          ) : (
+            <div className="text-xs text-gray-400">Sin imagen disponible</div>
+          )}
         </div>
       </div>
 
       <main className="max-w-md mx-auto px-4 py-4 space-y-6">
         
-        {/* Título y Precio Principal */}
+        {/* Título y Precio */}
         <div className="flex items-start justify-between gap-4 border-b border-gray-100 pb-4">
           <h1 className="font-bold text-lg sm:text-xl text-[#3D2314] leading-tight">
-            Hamburguesa Patagónica
+            {producto.nombre || producto.name}
           </h1>
           <span className="font-bold text-base sm:text-lg text-[#3D2314] shrink-0">
             ${precioBase.toLocaleString()}
@@ -87,7 +140,7 @@ export default function ProductDetail() {
         <div className="space-y-1.5 border-b border-gray-100 pb-4">
           <h2 className="font-bold text-sm text-[#3D2314]">Descripción</h2>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Pan brioche, mayonesa vegana, medallón de falafel, salteado de hongos, cebolla morada y queso a base de almendras.
+            {producto.descripcion || producto.description || 'Sin descripción disponible.'}
           </p>
         </div>
 
@@ -95,7 +148,7 @@ export default function ProductDetail() {
         <div className="space-y-5">
           <h2 className="font-bold text-sm text-[#3D2314] uppercase tracking-wide">Personalizá</h2>
 
-          {/* Opción 1: MEDALLONES */}
+          {/* Opción Medallones */}
           <div className="space-y-2">
             <h3 className="text-xs font-bold text-[#8C6D58] uppercase tracking-wider">MEDALLONES</h3>
             <div className="space-y-1">
@@ -111,15 +164,13 @@ export default function ProductDetail() {
                     </div>
                     <span className="text-gray-700">{opcion.nombre}</span>
                   </div>
-                  <span className="font-medium text-gray-600">
-                    ${opcion.extra}
-                  </span>
+                  <span className="font-medium text-gray-600">${opcion.extra}</span>
                 </label>
               ))}
             </div>
           </div>
 
-          {/* Opción 2: PAN */}
+          {/* Opción Pan */}
           <div className="space-y-2">
             <h3 className="text-xs font-bold text-[#8C6D58] uppercase tracking-wider">PAN</h3>
             <div className="space-y-1">
@@ -135,16 +186,14 @@ export default function ProductDetail() {
                     </div>
                     <span className="text-gray-700">{opcion.nombre}</span>
                   </div>
-                  <span className="font-medium text-gray-600">
-                    ${opcion.extra}
-                  </span>
+                  <span className="font-medium text-gray-600">${opcion.extra}</span>
                 </label>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Contador de Cantidad y Subtotal */}
+        {/* Contador y Subtotal */}
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-3 py-1.5 shadow-2xs">
             <button 
@@ -169,7 +218,7 @@ export default function ProductDetail() {
 
       </main>
 
-      {/* Botón Agregar Fijo Inferior estilo Figma */}
+      {/* Botón Agregar Fijo Inferior */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 p-4 z-30">
         <div className="max-w-md mx-auto">
           <button

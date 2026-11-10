@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { apiFetch } from '../services/api'
 
 const AuthContext = createContext()
 
@@ -6,8 +7,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(localStorage.getItem('ecobite_token') || null)
   const [loading, setLoading] = useState(true)
-
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
   useEffect(() => {
     const savedUser = localStorage.getItem('ecobite_user')
@@ -22,20 +21,12 @@ export const AuthProvider = ({ children }) => {
   }, [token])
 
   const login = async (email, password) => {
-    const response = await fetch(`${apiUrl}/api/auth/login`, {
+    // Usamos apiFetch apuntando a /auth/login (apiFetch ya incluye el /api inicial)
+    const data = await apiFetch('/auth/login', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, contrasena: password }),
+      body: { email, contrasena: password }
     })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.mensaje || errorData.message || errorData.error || 'Credenciales incorrectas')
-    }
-
-    const data = await response.json()
     const userData = data.user || data.usuario
     
     setUser(userData)
@@ -47,7 +38,6 @@ export const AuthProvider = ({ children }) => {
   }
 
   const register = async (nombreArg, emailArg, passwordArg) => {
-    // Si la función recibe un objeto anidado como primer argumento, extraemos sus valores
     let nombre = nombreArg
     let email = emailArg
     let password = passwordArg
@@ -58,24 +48,15 @@ export const AuthProvider = ({ children }) => {
       password = nombreArg.contrasena || nombreArg.password || passwordArg
     }
 
-    const response = await fetch(`${apiUrl}/api/usuarios/registrar`, {
+    // Usamos apiFetch apuntando a /usuarios/registrar sin duplicar el /api
+    const data = await apiFetch('/usuarios/registrar', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
+      body: { 
         nombre, 
         email, 
         contrasena: password
-      }),
+      }
     })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.mensaje || errorData.message || errorData.error || 'Error al registrar la cuenta')
-    }
-
-    const data = await response.json()
 
     if (data.token && (data.user || data.usuario)) {
       const userData = data.user || data.usuario

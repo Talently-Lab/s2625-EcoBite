@@ -13,37 +13,26 @@ export default function Dashboard() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        // Simulación de carga de datos del panel administrador
-        setTimeout(() => {
-          setStats({
-            totalOrders: 15,
-            totalRevenue: 450.5,
-            activeUsers: 8,
-          });
-          setOrders([
-            {
-              id: 101,
-              customer: "Ana Pérez",
-              total: 45.0,
-              status: "Completado",
-            },
-            {
-              id: 102,
-              customer: "Carlos Gómez",
-              total: 32.5,
-              status: "En proceso",
-            },
-            {
-              id: 103,
-              customer: "María Rodríguez",
-              total: 60.0,
-              status: "Pendiente",
-            },
-          ]);
-          setLoading(false);
-        }, 500);
+        // Llamada al endpoint real que subió Brandon a main
+        const response = await fetch("/api/dashboard/stats");
+        
+        if (!response.ok) {
+          throw new Error("Error al obtener los datos del servidor");
+        }
+        
+        const data = await response.json();
+        
+        // Mapeamos la data real del backend
+        setStats({
+          totalOrders: data.totalOrders || 0,
+          totalRevenue: data.totalRevenue || 0,
+          activeUsers: data.activeUsers || 0,
+        });
+        setOrders(data.recentOrders || []);
+        
       } catch (error) {
         console.error("Error al cargar datos del dashboard:", error);
+      } finally {
         setLoading(false);
       }
     };
@@ -53,7 +42,9 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center">Cargando panel de administración...</div>
+      <div className="flex justify-center items-center h-screen">
+        <span className="loading loading-spinner loading-lg text-primary">Cargando panel de administración...</span>
+      </div>
     );
   }
 
@@ -111,32 +102,40 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {orders.map((order) => (
-                <tr key={order.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    #{order.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {order.customer}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    ${order.total.toFixed(2)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        order.status === "Completado"
-                          ? "bg-green-100 text-green-800"
-                          : order.status === "En proceso"
+              {orders.length > 0 ? (
+                orders.map((order) => (
+                  <tr key={order.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      #{order.id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {order.customer}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      ${Number(order.total || 0).toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          order.status === "Completado"
+                            ? "bg-green-100 text-green-800"
+                            : order.status === "En proceso"
                             ? "bg-yellow-100 text-yellow-800"
                             : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {order.status}
-                    </span>
+                        }`}
+                      >
+                        {order.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500">
+                    No hay pedidos recientes disponibles.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

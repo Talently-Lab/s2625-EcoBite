@@ -24,30 +24,12 @@ export default function Login() {
 
     setSubmitting(true)
     try {
-      // 1. Petición REAL al backend en Docker (usando la variable VITE_API_URL de tu .env)
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-     const response = await fetch(`${apiUrl}/api/auth/login`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({ email,contrasena: password }),
-})
-
-      if (!response.ok) {
-        throw new Error('Credenciales incorrectas')
-      }
-
-      // 2. Leemos la respuesta real que envía el backend
-      const data = await response.json()
-      
-      // 3. Guardamos los datos reales y el token devuelto por el servidor
-      login(data.user, data.token)
+      // Usamos la función login del AuthContext que ya maneja apiFetch correctamente
+      await login(email, password)
       navigate('/')
-
     } catch (err) {
       setError(true)
-      setErrorMessage(err.message || 'Error al conectar con el servidor')
+      setErrorMessage(err.message || 'Credenciales incorrectas')
     } finally {
       setSubmitting(false)
     }

@@ -18,7 +18,9 @@ services:
       retries: 10
 
   api:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: ecobite_api
     restart: unless-stopped
     ports:
