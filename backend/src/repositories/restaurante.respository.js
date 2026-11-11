@@ -15,6 +15,12 @@ const findAllActive = () => {
             domicilio: true,
             latitude: true,
             longitude: true,
+            categoriaComida: true,
+            ceroResiduos: true,
+            envioVerde: true,
+            recomendado: true,
+            calificacionPromedio: true,
+            totalValoraciones: true,
         },
         orderBy: { nombre: "asc"},
     });
