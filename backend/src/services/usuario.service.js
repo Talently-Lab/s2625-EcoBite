@@ -1,6 +1,8 @@
 const AppError = require("../utils/AppError");
 const usuarioRepository = require("../repositories/usuario.repository");
 const tipoUsuarioRepository = require("../repositories/tipoUsuario.repository");
+const prisma = require("../config/prisma");
+const { validarListadoUsuarios } = require("../validators/usuarioListado.validator");
 
 const bcrypt = require("bcrypt");
 const validator = require("validator");
@@ -41,8 +43,8 @@ const registrarUsuario = async({nombre, email, contrasena}) =>{
         throw new AppError("La contraseña no puede contener solo espacios", 400);
     }
 
-    if (Array.from(contrasena).length < 15){
-        throw new AppError("La contraseña debe tener al menos 15 caracteres", 400);
+    if (Array.from(contrasena).length < 10){
+        throw new AppError("La contraseña debe tener al menos 10 caracteres", 400);
     }
 
     if (Buffer.byteLength(contrasena, "utf8") > 72) {
@@ -81,4 +83,38 @@ const registrarUsuario = async({nombre, email, contrasena}) =>{
     });
 };
 
-module.exports = { registrarUsuario };
+// Autoriza al administrador y consulta usuarios con filtros y paginación
+const listarUsuarios = async (query, usuarioActual) => {
+    if (!usuarioActual || usuarioActual.nombreRol !== "admin") {
+        throw new AppError("Solo los administradores pueden listar usuarios", 403);
+    }
+
+    const { filtros, paginacion } = validarListadoUsuarios(query);
+
+    return prisma.$transaction(async (tx) => {
+        const usuarios = await usuarioRepository.listarParaAdmin(
+            filtros,
+            paginacion,
+            tx
+        );
+
+        const total = await usuarioRepository.contarParaAdmin(filtros, tx);
+
+        return {
+            usuarios,
+            paginacion: {
+                pagina: paginacion.pagina,
+                limite: paginacion.limite,
+                total,
+                totalPaginas: Math.ceil(total / paginacion.limite), // Redondea hacia arriba para incluir la última página incompleta
+            },
+        };
+    }, {
+        isolationLevel: "RepeatableRead", // Mantiene el listado y el conteo sobre la misma versión de los datos
+    });
+};
+
+module.exports = {
+    registrarUsuario,
+    listarUsuarios,
+};

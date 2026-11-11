@@ -7,6 +7,8 @@ const { calcularDesgloseDiario } = require("../utils/desgloseDashboard");
 const DIAS_RESUMEN = 7;
 const MILISEGUNDOS_POR_DIA = 24 * 60 * 60 * 1000;
 const SEMANAS_GRAFICO = 8;
+const HORAS_ABANDONO = 1;
+const MILISEGUNDOS_POR_HORA = 60 * 60 * 1000;
 
 // consulta ventas e impacto sobre el mismo conjunto de datos
 const consultarEstadisticas = async (db) => {
@@ -150,6 +152,16 @@ const consultarResumenSemanal = async (desde, hasta, db) => {
 
     const fechasPedidos = await dashboardRepository.obtenerFechasPedidosPeriodo(desdeGrafico, hasta, db);
     const pedidosDiarios =  await dashboardRepository.obtenerPedidosParaDesgloseDiario(desde, hasta, db);
+    const limiteAbandono = new Date(
+        hasta.getTime() - HORAS_ABANDONO * MILISEGUNDOS_POR_HORA
+    ); // Calcula el umbral usando el mismo instante final del resumen
+
+    const abandono = await dashboardRepository.obtenerConteosAbandono(
+        desde,
+        hasta,
+        limiteAbandono,
+        db
+    );
 
     return {
         alcance: "ultimos_7_dias",
@@ -169,6 +181,20 @@ const consultarResumenSemanal = async (desde, hasta, db) => {
         transportes: resumirTransportes(envios),
         pedidosPorSemana: resumirPedidosPorSemana(fechasPedidos, hasta),
         desgloseDiario: calcularDesgloseDiario(pedidosDiarios, envios),
+        abandono: {
+            estadoPedido: "pendiente",
+            umbralHoras: HORAS_ABANDONO,
+            pedidosCreados: abandono.pedidosCreados,
+            pedidosAbandonados: abandono.pedidosAbandonados,
+            tasaAbandonoPorcentaje: abandono.pedidosCreados > 0
+                ? Number(
+                    (
+                        abandono.pedidosAbandonados * 100 /
+                        abandono.pedidosCreados
+                    ).toFixed(2) // Redondea el porcentaje completo a dos decimales
+                )
+                : null,
+        },
     };
 };
 

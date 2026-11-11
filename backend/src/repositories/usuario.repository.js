@@ -53,4 +53,60 @@ const findByIdConRol = (id) => {
     });
 };
 
-module.exports = { findByEmail, create, findByIdConRol };
+// Construye el filtro compartido por el listado y su conteo
+const construirFiltroListado = (filtros) => {
+    const where = {};
+
+    if (filtros.rol !== undefined) {
+        where.tipoUsuario = {
+            nombreRol: filtros.rol,
+        }; // Filtra por el nombre del rol relacionado
+    }
+
+    if (filtros.activo !== undefined) {
+        where.activo = filtros.activo;
+    }
+
+    return where;
+};
+
+// Obtiene una página de usuarios sin recuperar contraseñas
+const listarParaAdmin = (filtros, paginacion, db = prisma) => {
+    return db.usuario.findMany({
+        where: construirFiltroListado(filtros),
+        skip: paginacion.desplazamiento, // Omite los registros de las páginas anteriores
+        take: paginacion.limite, // Limita la cantidad de usuarios devueltos
+        orderBy: [
+            { nombre: "asc" },
+            { id: "asc" }, // Desempata nombres iguales para mantener un orden estable
+        ],
+        select: {
+            id: true,
+            nombre: true,
+            email: true,
+            imagenUri: true,
+            activo: true,
+            restauranteId: true,
+            tipoUsuario: {
+                select: {
+                    nombreRol: true,
+                },
+            },
+        },
+    });
+};
+
+// Cuenta todos los usuarios que cumplen los mismos filtros
+const contarParaAdmin = (filtros, db = prisma) => {
+    return db.usuario.count({
+        where: construirFiltroListado(filtros),
+    });
+};
+
+module.exports = {
+    findByEmail,
+    create,
+    findByIdConRol,
+    listarParaAdmin,
+    contarParaAdmin,
+};
