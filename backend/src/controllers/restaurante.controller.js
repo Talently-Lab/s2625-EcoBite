@@ -8,4 +8,16 @@ const listar = async (req, res) => {
     res.status(200).json(restaurantes);
 };
 
-module.exports = {listar};
+// Devuelve el detalle de un restaurante por ID
+const obtenerDetalle = async (req, res) => {
+    const restaurante = await restauranteService.obtenerDetalleRestaurante(
+        req.params.restauranteId
+    );
+
+    res.status(200).json(restaurante);
+};
+
+module.exports = {
+    listar,
+    obtenerDetalle,
+};

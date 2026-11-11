@@ -74,6 +74,32 @@ const findByIdYRestaurante = (platoId, restauranteId) => {
     });
 };
 
+// Obtiene el detalle de un plato activo de un restaurante activo
+const findActivoByIdYRestaurante = (platoId, restauranteId) => {
+    return prisma.plato.findFirst({
+        where: {
+            id: platoId,
+            restauranteId,
+            activo: true,
+            restaurante: {
+                estado: "activo",
+            },
+        },
+        select: {
+            id: true,
+            restauranteId: true,
+            nombre: true,
+            descripcion: true,
+            imagenUrl: true,
+            precio: true,
+            cantidadVasos: true,
+            cantidadPlatos: true,
+            cantidadCubiertos: true,
+            cantidadRecipiente: true,
+        },
+    });
+};
+
 // Actualiza los campos permitidos de un plato del restaurante
 const actualizar = (platoId, restauranteId, datos) => {
     return prisma.plato.update({
@@ -145,6 +171,12 @@ const findDisponiblesParaPedido = (restauranteId, platoIds, db=prisma) => {
     });
 };
 
-module.exports = { findActivosByRestaurante, crear,
-                   findByIdYRestaurante, actualizar,
-                   actualizarEstado, findDisponiblesParaPedido, };
+module.exports = {
+    findActivosByRestaurante,
+    crear,
+    findByIdYRestaurante,
+    actualizar,
+    actualizarEstado,
+    findDisponiblesParaPedido,
+    findActivoByIdYRestaurante
+};

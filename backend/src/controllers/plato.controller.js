@@ -52,5 +52,20 @@ const cambiarEstado = async (req, res) => {
     });
 };
 
-module.exports = { listarPorRestaurante, crear,
-    editar, cambiarEstado, };
+// Devuelve el detalle de un plato por ID
+const obtenerDetalle = async (req, res) => {
+    const plato = await platoService.obtenerDetallePlato(
+        req.params.restauranteId,
+        req.params.platoId
+    );
+
+    res.status(200).json(plato);
+};
+
+module.exports = {
+    listarPorRestaurante,
+    crear,
+    editar,
+    cambiarEstado,
+    obtenerDetalle,
+};

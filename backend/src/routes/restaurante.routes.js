@@ -7,7 +7,9 @@ const { cargarUsuarioActual, autorizarRoles, } = require("../middlewares/autoriz
 const router = Router();
 
 router.get("/", controller.listar);
+router.get("/:restauranteId", controller.obtenerDetalle);
 router.get("/:restauranteId/platos", platoController.listarPorRestaurante);
+router.get("/:restauranteId/platos/:platoId", platoController.obtenerDetalle);
 router.post("/:restauranteId/platos", verificarToken, cargarUsuarioActual,
     autorizarRoles("admin", "gerente_restaurante"), platoController.crear);
 router.patch("/:restauranteId/platos/:platoId", verificarToken, cargarUsuarioActual,
