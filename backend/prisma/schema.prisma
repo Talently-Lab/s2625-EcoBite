@@ -132,6 +132,12 @@ model Restaurante {
   longitude Decimal           @db.Decimal(10, 7)
   estado    EstadoRestaurante @default(activo)
 
+  ceroResiduos          Boolean  @default(false)
+  envioVerde            Boolean  @default(false)
+  recomendado           Boolean  @default(false)
+  calificacionPromedio  Decimal? @db.Decimal(2, 1)
+  totalValoraciones     Int      @default(0)
+
   categoriaComida CategoriaComida @map("categoria_comida")
 
   usuarios             Usuario[]
