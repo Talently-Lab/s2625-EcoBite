@@ -39,4 +39,33 @@ const findById = (id, db = prisma) =>{
     });
 };
 
-module.exports = { findAllActive, findById };
+// Obtiene el detalle de un restaurante activo por ID
+const findActivoById = (id) => {
+    return prisma.restaurante.findFirst({
+        where: {
+            id,
+            estado: "activo",
+        },
+        select: {
+            id: true,
+            nombre: true,
+            descripcion: true,
+            imagenUrl: true,
+            domicilio: true,
+            latitude: true,
+            longitude: true,
+            categoriaComida: true,
+            ceroResiduos: true,
+            envioVerde: true,
+            recomendado: true,
+            calificacionPromedio: true,
+            totalValoraciones: true,
+        },
+    });
+};
+
+module.exports = {
+    findAllActive,
+    findById,
+    findActivoById,
+};

@@ -84,5 +84,29 @@ const cambiarEstadoPlato = async (restauranteId, platoId, datos, usuarioActual) 
     }
 };
 
-module.exports = { listarPlatosPorRestaurante, crearPlato,
-    editarPlato, cambiarEstadoPlato, };
+// Obtiene el detalle de un plato disponible
+const obtenerDetallePlato = async (restauranteId, platoId) => {
+    const idRestaurante = validarUuid(restauranteId, "El ID del restaurante");
+    const idPlato = validarUuid(platoId, "El ID del plato");
+
+    await comprobarRestauranteActivo(idRestaurante);
+
+    const plato = await platoRepository.findActivoByIdYRestaurante(
+        idPlato,
+        idRestaurante
+    );
+
+    if (!plato) {
+        throw new AppError("Plato no encontrado o no disponible", 404);
+    }
+
+    return plato;
+};
+
+module.exports = {
+    listarPlatosPorRestaurante,
+    crearPlato,
+    editarPlato,
+    cambiarEstadoPlato,
+    obtenerDetallePlato,
+};
