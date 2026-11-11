@@ -1,6 +1,6 @@
 # EcoBite — Guía de endpoints de la API
 
-**Referencia:** documentación de Backend del 06/11/2026\
+**Referencia:** documentación de Backend del 09/11/2026\
 **Base URL local:** `http://localhost:3000/api`\
 **Para:** Frontend y QA
 
@@ -204,6 +204,64 @@ Frontend debe resolverlas contra el origen del backend, por ejemplo:
 **Para QA:** comprobar estructura de campos y comportamiento con imagen nula.
 
 ---
+### `GET /usuarios`
+
+Lista usuarios con paginación y filtros.
+
+**Acceso:** Bearer Token de administrador activo.
+**Body:** ninguno.
+
+**Query params opcionales:**
+
+| Parámetro | Regla |
+|---|---|
+| `pagina` | Entero positivo; predeterminado `1` |
+| `limite` | Entero entre 1 y 100; predeterminado `20` |
+| `rol` | `cliente`, `gerente_restaurante`, `delivery` o `admin` |
+| `activo` | `true` o `false` |
+
+Sin filtros incluye todos los roles y estados.
+Se rechazan parámetros desconocidos.
+
+**Ejemplo:** `GET /usuarios?pagina=1&limite=20&rol=cliente&activo=true`
+
+**Respuesta `200`:**
+
+```json
+{
+  "usuarios": [
+    {
+      "id": "55d22363-b914-4f6d-8d27-ff1e41ce59ac",
+      "nombre": "Ana",
+      "email": "ana.test@gmail.com",
+      "imagenUri": null,
+      "activo": true,
+      "restauranteId": null,
+      "tipoUsuario": {
+        "nombreRol": "cliente"
+      }
+    }
+  ],
+  "paginacion": {
+    "pagina": 1,
+    "limite": 20,
+    "total": 1,
+    "totalPaginas": 1
+  }
+}
+```
+
+- Ordena por nombre y desempata por ID
+- `total` cuenta todos los usuarios que cumplen los filtros
+- Sin coincidencias devuelve `usuarios: []`, `total: 0` y `totalPaginas: 0`
+- Una página fuera de los resultados devuelve `usuarios: []`
+- No devuelve contraseñas ni hashes
+- `imagenUri` puede ser `null`; las rutas `/images/...` apuntan al origen
+  del backend, sin el prefijo `/api`
+
+**Errores:** `400` parámetros inválidos; `401` autenticación inválida;
+`403` cuenta desactivada o rol distinto de administrador; `500` error interno.
+
 
 ## 4. Platos
 
@@ -944,6 +1002,7 @@ Devuelve las estadísticas globales de los últimos siete días.
 | `transportes` | Entregas por transporte, porcentajes y datos faltantes |
 | `pedidosPorSemana` | Ocho períodos consecutivos de siete días |
 | `desgloseDiario` | Pedidos, ventas, tickets y entregas por fecha de Argentina |
+| `abandono` | Pedidos con ítems, pendientes de más de una hora, y su porcentaje |
 
 **Reglas del período:**
 
@@ -980,11 +1039,41 @@ Devuelve las estadísticas globales de los últimos siete días.
 - Si faltan datos de impacto, el componente afectado y el total son `null`
 - Sin pedidos ni envíos seleccionados, `desgloseDiario` es `[]`
 
-**Pendiente de definición:** la tasa de abandono no se incluye.
-Un pedido `pendiente` ya fue enviado al restaurante y no demuestra,
-por sí solo, que el cliente abandonó un carrito.
+**Tasa de abandono:**
+
+Según la definición acordada con Data, se consideran abandonados los
+pedidos con al menos un ítem que siguen en estado `pendiente` después
+de más de una hora desde su creación.
+
+- Numerador: pedidos que cumplen esa condición dentro del período
+- Denominador: todos los pedidos con ítems creados en el mismo período,
+  independientemente de su estado
+- Ambos conteos usan los últimos 7 días, según los límites de `periodo`
+- El filtro general `estadoPedido: "entregado"` no aplica a este bloque
+- Un pedido con exactamente una hora todavía no cuenta como abandonado
+- La tasa se calcula como `pedidosAbandonados / pedidosCreados × 100`
+- `tasaAbandonoPorcentaje` es un número redondeado a dos decimales
+- Sin pedidos elegibles, la tasa es `null`; si hay pedidos pero ninguno
+  abandonado, es `0`
+- Esta métrica no cambia estados ni cancela pedidos automáticamente
+- No utiliza eventos del frontend ni mide carritos que nunca se enviaron
+
+Ejemplo del bloque:
+
+```json
+{
+  "abandono": {
+    "estadoPedido": "pendiente",
+    "umbralHoras": 1,
+    "pedidosCreados": 3,
+    "pedidosAbandonados": 1,
+    "tasaAbandonoPorcentaje": 33.33
+  }
+}
+```
 
 **Errores:** `401` sin autenticación válida; `403` cuenta desactivada
 o rol distinto de administrador; `500` error interno.
 
-> **Nota de alcance:** los endpoints de envíos fueron implementados y probados localmente en `feature/endpoints-pedidos`; su disponibilidad en `main` depende de integrar la rama. La subida de imágenes y la cancelación todavía no están implementadas.
+> **Nota de alcance:** los endpoints de envíos ya están integrados en `main`.
+> La subida de imágenes y la cancelación todavía no están implementadas.

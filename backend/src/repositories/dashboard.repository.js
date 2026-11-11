@@ -158,6 +158,36 @@ const obtenerPedidosParaDesgloseDiario = (desde, hasta, db = prisma) => {
     });
 };
 
+// Cuenta los pedidos con items y los pendientes que superan el umbral
+const obtenerConteosAbandono = async (desde, hasta, limiteAbandono, db = prisma) => {
+    const filtro = {
+        fecha: {
+            gte: desde,
+            lt: hasta,
+        },
+        items: {
+            some: {}, // Exige que el pedido tenga al menos un item
+        },
+    };
+
+    const pedidosCreados = await db.pedido.count({
+        where: filtro,
+    });
+
+    const pedidosAbandonados = await db.pedido.count({
+        where: {
+            ...filtro, // conserva la ventana y la condicion de tener items
+            estado: "pendiente",
+            fecha: {
+                ...filtro.fecha,
+                lt: limiteAbandono, // exige mas de una hora desde la creación
+            },
+        },
+    });
+
+    return { pedidosCreados, pedidosAbandonados };
+};
+
 module.exports = {
     obtenerResumenVentas,
     obtenerPedidosParaImpacto,
@@ -167,4 +197,5 @@ module.exports = {
     obtenerTransportesPeriodo,
     obtenerFechasPedidosPeriodo,
     obtenerPedidosParaDesgloseDiario,
+    obtenerConteosAbandono,
  };

@@ -30,4 +30,20 @@ const perfil = (req, res) => {
     res.status(200).json({ usuario: req.usuario });
 }
 
-module.exports = { registrar, perfil };
+// Devuelve el listado paginado al administrador
+const listar = async (req, res) => {
+    const resultado = await usuarioService.listarUsuarios(
+        req.query,
+        req.usuarioActual
+    );
+
+    res.status(200).json(resultado);
+};
+
+
+
+module.exports = {
+    registrar,
+    perfil,
+    listar,
+};
