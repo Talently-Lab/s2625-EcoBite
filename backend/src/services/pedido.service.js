@@ -10,6 +10,7 @@ const envioRepository = require("../repositories/envio.repository");
 const prisma = require("../config/prisma");
 const { validarUuid } = require("../validators/uuid.validator");
 const { validarPaginacion } = require("../validators/paginacion.validator");
+const { calcularDistanciaKm } = require("../utils/distancia");
 
 // Comprueba el permiso antes de procesar los datos
 const autorizarCrecion = (usuarioActual) => {
@@ -21,9 +22,12 @@ const autorizarCrecion = (usuarioActual) => {
 // Comprueba que el restaurante pueda recibir pedidos
 const comprobarRestauranteActivo = async (restauranteId, db) => {
     const restaurante = await restauranteRepository.findById(restauranteId, db);
+
     if (!restaurante || restaurante.estado !== "activo") {
         throw new AppError("Restaurante no encontrado o no disponible", 404);
     }
+
+    return restaurante;
 };
 
 // Calcula el impacto con los datos historicos del pedido
@@ -45,6 +49,9 @@ const crearPedidoConEnvio = async (datos, usuarioId, calculo, db) => {
         pedidoId: pedido.id,
         restauranteId: pedido.restauranteId,
         domicilioDestino: datos.domicilioDestino,
+        latitudDestino: datos.latitudDestino,
+        longitudDestino: datos.longitudDestino,
+        distanciaKm: datos.distanciaKm,
     }, db);
     const pedidoConEnvio = { ...pedido, envio };
 
@@ -54,9 +61,19 @@ const crearPedidoConEnvio = async (datos, usuarioId, calculo, db) => {
     };
 };
 
-// Consulta precios, calcula el total y guarda dentro de la transacción
+// Consulta el restaurante, calcula la distancia y prepara el pedido
 const guardarPedido = async (datos, usuarioId, db) => {
-    await comprobarRestauranteActivo(datos.restauranteId, db);
+    const restaurante = await comprobarRestauranteActivo(
+        datos.restauranteId,
+        db
+    );
+
+    const distanciaKm = calcularDistanciaKm(
+        restaurante.latitude,
+        restaurante.longitude,
+        datos.latitudDestino,
+        datos.longitudDestino
+    );
 
     const platoIds = datos.items.map((item) => item.platoId);
     const platos = await platoRepository.findDisponiblesParaPedido(
@@ -67,7 +84,12 @@ const guardarPedido = async (datos, usuarioId, db) => {
 
     const calculo = calcularPedido(datos.items, platos);
 
-    return crearPedidoConEnvio(datos, usuarioId, calculo, db);
+    return crearPedidoConEnvio(
+        { ...datos, distanciaKm }, // Añade la distancia calculada por el backend
+        usuarioId,
+        calculo,
+        db
+    );
 };
 
 // Autoriza, valida y crea un pedido con sus detalles

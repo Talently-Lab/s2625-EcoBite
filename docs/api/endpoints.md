@@ -1,6 +1,6 @@
 # EcoBite — Guía de endpoints de la API
 
-**Referencia:** documentación de Backend del 30/10/2026\
+**Referencia:** documentación de Backend del 09/11/2026\
 **Base URL local:** `http://localhost:3000/api`\
 **Para:** Frontend y QA
 
@@ -186,6 +186,11 @@ Devuelve un **arreglo de restaurantes**. **Body:** ninguno.
   }
 ]
 ```
+Cada restaurante incluye `descripcion`, que puede ser texto o `null`.
+
+Las imágenes usan rutas como `/images/restaurantes/Veggie.jpg`.
+Frontend debe resolverlas contra el origen del backend, por ejemplo:
+`http://localhost:3000/images/restaurantes/Veggie.jpg`, sin `/api`.
 
 | Campo de respuesta | Uso en Frontend |
 |---|---|
@@ -199,6 +204,64 @@ Devuelve un **arreglo de restaurantes**. **Body:** ninguno.
 **Para QA:** comprobar estructura de campos y comportamiento con imagen nula.
 
 ---
+### `GET /usuarios`
+
+Lista usuarios con paginación y filtros.
+
+**Acceso:** Bearer Token de administrador activo.
+**Body:** ninguno.
+
+**Query params opcionales:**
+
+| Parámetro | Regla |
+|---|---|
+| `pagina` | Entero positivo; predeterminado `1` |
+| `limite` | Entero entre 1 y 100; predeterminado `20` |
+| `rol` | `cliente`, `gerente_restaurante`, `delivery` o `admin` |
+| `activo` | `true` o `false` |
+
+Sin filtros incluye todos los roles y estados.
+Se rechazan parámetros desconocidos.
+
+**Ejemplo:** `GET /usuarios?pagina=1&limite=20&rol=cliente&activo=true`
+
+**Respuesta `200`:**
+
+```json
+{
+  "usuarios": [
+    {
+      "id": "55d22363-b914-4f6d-8d27-ff1e41ce59ac",
+      "nombre": "Ana",
+      "email": "ana.test@gmail.com",
+      "imagenUri": null,
+      "activo": true,
+      "restauranteId": null,
+      "tipoUsuario": {
+        "nombreRol": "cliente"
+      }
+    }
+  ],
+  "paginacion": {
+    "pagina": 1,
+    "limite": 20,
+    "total": 1,
+    "totalPaginas": 1
+  }
+}
+```
+
+- Ordena por nombre y desempata por ID
+- `total` cuenta todos los usuarios que cumplen los filtros
+- Sin coincidencias devuelve `usuarios: []`, `total: 0` y `totalPaginas: 0`
+- Una página fuera de los resultados devuelve `usuarios: []`
+- No devuelve contraseñas ni hashes
+- `imagenUri` puede ser `null`; las rutas `/images/...` apuntan al origen
+  del backend, sin el prefijo `/api`
+
+**Errores:** `400` parámetros inválidos; `401` autenticación inválida;
+`403` cuenta desactivada o rol distinto de administrador; `500` error interno.
+
 
 ## 4. Platos
 
@@ -229,6 +292,7 @@ Devuelve un arreglo de **platos activos** de un restaurante activo, ordenados po
 
 El listado solo devuelve platos activos, pero no incluye el campo
 `activo`. `precio` llega como texto decimal e `imagenUrl` puede ser `null`.
+Cada plato incluye `descripcion`, que puede ser texto o `null`.
 
 **Errores:** `400` UUID inválido; `404` restaurante inexistente o inactivo.\
 **Para Frontend:** consumir este endpoint para construir el menú; no tomar los productos de mocks.\
@@ -244,6 +308,7 @@ Crea un plato dentro del restaurante indicado.
 |---|---|---|
 | `restauranteId` | En URL | UUID del restaurante |
 | `nombre` | Sí | string; 1–200 caracteres tras normalizar espacios |
+| `descripcion` | No | Texto de hasta 500 caracteres tras quitar espacios iniciales y finales; admite `null` |
 | `precio` | Sí | Número o string decimal; mayor que 0, máximo `99999999.99`, hasta 2 decimales |
 | `cantidadVasos` | No | Entero ≥ 0; por defecto 0 |
 | `cantidadPlatos` | No | Entero ≥ 0; por defecto 0 |
@@ -294,6 +359,8 @@ Actualiza uno o varios campos del plato.
 **Acceso:** mismos permisos que crear platos. **Parámetros:** `restauranteId` y `platoId` (UUID).
 
 **Body:** enviar **al menos uno** de los campos permitidos en el POST (`nombre`, `precio`, `cantidadVasos`, `cantidadPlatos`, `cantidadCubiertos`, `cantidadRecipiente`), con las mismas validaciones.
+`descripcion` permite modificar la descripción. Si se omite, conserva
+el valor anterior; si se envía `null`, `""` o solo espacios, se borra.
 
 ```json
 {
@@ -356,6 +423,8 @@ Crea un pedido, sus artículos y el envío asociado en una misma operación.
 |---|---|---|
 | `restauranteId` | Sí | UUID de un restaurante activo |
 | `domicilioDestino` | Sí | string; 1–500 caracteres tras normalizar espacios |
+| `latitudDestino` | Sí | Número entre -90 y 90, sin comillas |
+| `longitudDestino` | Sí | Número entre -180 y 180, sin comillas |
 | `items` | Sí | Array con al menos un elemento |
 | `items[].platoId` | Sí | UUID de un plato activo del mismo restaurante |
 | `items[].cantidad` | Sí | Entero entre 1 y `2147483647` |
@@ -363,7 +432,9 @@ Crea un pedido, sus artículos y el envío asociado en una misma operación.
 ```json
 {
   "restauranteId": "7be4dd88-9bff-4994-b985-073256525740",
-  "domicilioDestino": "Calle Primavera 123",
+  "domicilioDestino": "Av. Corrientes y Av. 9 de Julio, Buenos Aires",
+  "latitudDestino": -34.603851,
+  "longitudDestino": -58.381775,
   "items": [
     {
       "platoId": "075a0868-3e04-4fd9-9995-92af6227937e",
@@ -372,51 +443,81 @@ Crea un pedido, sus artículos y el envío asociado en una misma operación.
   ]
 }
 ```
+**Dirección y distancia:** `domicilioDestino`, `latitudDestino` y
+`longitudDestino` deben corresponder al destino de entrega seleccionado.
+
+Las coordenadas son obligatorias y se envían como números, sin comillas.
+El backend calcula `distanciaKm` desde las coordenadas del restaurante.
+No se permite enviar `distanciaKm` en el body.
+
+La distancia es una estimación en línea recta, no un recorrido por calles.
+Se rechazan distancias superiores a 999.99 km por el límite del campo;
+esto no define una zona de cobertura comercial.
 
 **Respuesta `201` (ejemplo independiente del precio usado en la sección de platos)**
 
 ```json
 {
-  "message": "Pedido creado con éxito",
-  "pedido": {
-    "id": "c7662d18-3161-4e19-ac56-767f47947aca",
-    "usuarioId": "a5a6e9bc-6b2c-4f7b-aa13-2e0bc09febf9",
-    "restauranteId": "7be4dd88-9bff-4994-b985-073256525740",
-    "fecha": "2026-10-23T02:21:42.402Z",
-    "estado": "pendiente",
-    "montoTotal": "200",
-    "items": [
-      {
-        "id": "2452c44b-433b-41a7-86d0-fbac0d9652b3",
-        "platoId": "075a0868-3e04-4fd9-9995-92af6227937e",
-        "cantidad": 2,
-        "precioUnitario": "100",
-        "cantidadVasos": 0,
-        "cantidadPlatos": 1,
-        "cantidadCubiertos": 1,
-        "cantidadRecipiente": 0
-      }
-    ],
-    "envio": {
-      "pedidoId": "c7662d18-3161-4e19-ac56-767f47947aca",
-      "restauranteId": "7be4dd88-9bff-4994-b985-073256525740",
-      "domicilioDestino": "Calle Primavera 123",
-      "deliveryId": null,
-      "distanciaKm": "1.5",
-      "estado": "pendiente",
-      "fechaEnvio": "2026-10-23T02:21:42.447Z"
-    },
-    "impactoEstimado": {
-      "ahorroEnvasesGramos": "200",
-      "ahorroTransporteGramos": "0.00"
+    "pedido": {
+        "id": "20a1c52b-f524-4514-b2c2-d08bb57be6a8",
+        "usuarioId": "a5a6e9bc-6b2c-4f7b-aa13-2e0bc09febf9",
+        "restauranteId": "0a997190-9a20-4c4f-82e8-4122bf55c02b",
+        "fecha": "2026-11-05T18:28:23.813Z",
+        "estado": "pendiente",
+        "montoTotal": "125",
+        "items": [
+            {
+                "id": "b553e7b9-e075-4a76-aae1-89bae82c880d",
+                "pedidoId": "20a1c52b-f524-4514-b2c2-d08bb57be6a8",
+                "platoId": "a43c7d21-6b58-4e91-9c20-000000000007",
+                "cantidad": 1,
+                "precioUnitario": "125",
+                "cantidadVasos": 0,
+                "cantidadPlatos": 0,
+                "cantidadCubiertos": 1,
+                "cantidadRecipiente": 1
+            }
+        ],
+        "envio": {
+            "id": "6a62cc8c-9298-45e7-ba5f-a799e27183ad",
+            "pedidoId": "20a1c52b-f524-4514-b2c2-d08bb57be6a8",
+            "fechaEnvio": "2026-11-05T18:28:23.843Z",
+            "fechaAceptacion": null,
+            "fechaEntrega": null,
+            "deliveryId": null,
+            "distanciaKm": "4.37",
+            "restauranteId": "0a997190-9a20-4c4f-82e8-4122bf55c02b",
+            "domicilioDestino": "Av. Corrientes y Av. 9 de Julio, Buenos Aires",
+            "latitudDestino": "-34.603851",
+            "longitudDestino": "-58.381775",
+            "estado": "pendiente"
+        },
+        "impactoEstimado": {
+            "ahorroEnvasesGramos": "100",
+            "ahorroTransporteGramos": "229.60"
+        }
     }
-  }
 }
 ```
 
-**Importante para Frontend:** enviar solo IDs, cantidades y domicilio; **no enviar** precio, total, usuario ni impacto. Backend obtiene precios/envases de la base de datos y calcula el total. No repetir platos dentro de `items`. No hay idempotencia: reenviar la petición puede crear otro pedido.
+**Coordenadas en la respuesta:** el objeto `envio` incluye
+`latitudDestino`, `longitudDestino` y `distanciaKm` como texto decimal.
 
-**Estados iniciales:** pedido `pendiente`, envío `pendiente`, `deliveryId: null` sin repartidor. La distancia del MVP es fija (`1.5` km) y el domicilio no se valida geográficamente.
+Por ejemplo, para una distancia de `"4.37"` km, la fórmula actual
+calcula `"229.60"` gramos de ahorro estimado de transporte:
+(4.37 - 1.50) × 80.
+
+**Importante para Frontend:** enviar únicamente `restauranteId`,
+`items` con `platoId` y `cantidad`, `domicilioDestino`,
+`latitudDestino` y `longitudDestino`. No enviar precio, total,
+usuario, distancia ni impacto: el backend los determina.
+No repetir platos dentro de `items`. No hay idempotencia:
+reenviar la petición puede crear otro pedido.
+
+**Estados iniciales:** pedido `pendiente`, envío `pendiente` y
+`deliveryId: null`. La distancia se calcula con las coordenadas.
+El backend valida sus rangos, pero no comprueba que el domicilio
+escrito corresponda a esas coordenadas.
 
 **Campos de respuesta:** importes, distancia e impactos llegan como texto decimal. `precioUnitario` y envases guardan el valor histórico por unidad; pueden existir cantidades de envases `null` en datos anteriores. `impactoEstimado` es calculado (no un total persistido): envases = unidades × envases por unidad × 50 g; transporte = `max(distanciaKm - 1.5, 0) × 80 g`. Los ahorros pueden ser `null` si falta información.
 
@@ -541,6 +642,8 @@ Consulta los datos de un pedido propio.
       "distanciaKm": "1.5",
       "restauranteId": "7be4dd88-9bff-4994-b985-073256525740",
       "domicilioDestino": "Calle Primavera 123",
+      "latitudDestino": null,
+      "longitudDestino": null,
       "estado": "entregado"
     },
     "impactoEstimado": {
@@ -555,6 +658,10 @@ Consulta los datos de un pedido propio.
 - `envio` puede ser `null` en pedidos anteriores; en ese caso `ahorroTransporteGramos` también es `null`.
 - `ahorroEnvasesGramos` puede ser `null` si faltan datos de envases.
 - No se permite consultar pedidos de otros clientes.
+- `envio` incluye las coordenadas del destino y la distancia guardada al
+  crear el pedido, como texto decimal
+- Los envíos anteriores pueden tener `latitudDestino` y
+  `longitudDestino` en `null` y conservar la distancia fija anterior
 
 **Errores:** `400`, `401`, `403`, `404` pedido inexistente/ajeno, `500`.\
 **Para QA:** consultar pedido propio, pedido de otro cliente y UUID inválido.
@@ -567,6 +674,10 @@ rol `delivery` y perfil delivery registrado.
 
 El backend obtiene el delivery del usuario autenticado.
 No se envía `deliveryId` ni body en estas peticiones.
+Las respuestas al aceptar, iniciar el traslado y confirmar la entrega
+incluyen `latitudDestino` y `longitudDestino` dentro de `envio`.
+Ambos campos se devuelven como texto decimal y pueden ser `null`
+en envíos anteriores.
 
 ### `GET /envios/disponibles`
 
@@ -867,4 +978,102 @@ Devuelve los totales históricos de pedidos entregados de toda la plataforma.
 | 500 | Error interno |
 
 
-> **Nota de alcance:** los endpoints de envíos fueron implementados y probados localmente en `feature/endpoints-pedidos`; su disponibilidad en `main` depende de integrar la rama. La subida de imágenes y la cancelación todavía no están implementadas.
+### `GET /dashboard/resumen-semanal`
+
+Devuelve las estadísticas globales de los últimos siete días.
+
+**Acceso:** Bearer Token de administrador activo.
+**Body:** ninguno. **Parámetros:** no requiere.
+
+**Respuesta `200`:**
+
+| Campo | Contenido |
+|---|---|
+| `alcance` | `"ultimos_7_dias"` |
+| `estadoPedido` | `"entregado"` |
+| `periodo` | Fechas `desde` y `hasta` en UTC y campo de fecha utilizado |
+| `pedidosEntregados` | Cantidad de pedidos entregados creados en el período |
+| `ventasTotales` | Suma de sus importes, como texto con dos decimales |
+| `ticketPromedio` | Importe promedio, como texto con dos decimales |
+| `ticketMinimo` | Menor importe de pedido |
+| `ticketMaximo` | Mayor importe de pedido |
+| `impacto` | Ahorros estimados en kg y contadores de información incompleta |
+| `restaurantes` | Conteos y porcentajes actuales de activos e inactivos |
+| `transportes` | Entregas por transporte, porcentajes y datos faltantes |
+| `pedidosPorSemana` | Ocho períodos consecutivos de siete días |
+| `desgloseDiario` | Pedidos, ventas, tickets y entregas por fecha de Argentina |
+| `abandono` | Pedidos con ítems, pendientes de más de una hora, y su porcentaje |
+
+**Reglas del período:**
+
+- Se incluyen registros desde `desde`, inclusive, hasta `hasta`, exclusive
+- Los pedidos se filtran por `fecha` de creación y estado `entregado`
+- Los envíos se filtran por `fechaEnvio` de creación y estado `entregado`
+- No se filtra por la fecha en que se confirmó la entrega
+- Los restaurantes representan su estado actual, sin filtro de fechas
+- No son semanas de calendario: son ventanas móviles de siete días
+
+**Transporte:**
+
+- Los porcentajes se calculan sobre `entregasConTransporte`
+- `sinDatosTransporte` informa las entregas sin transporte identificable
+- Sin entregas con transporte conocido, `porcentajeBicicleta` es `null`
+- Se consulta el transporte actual del perfil del delivery, no una copia
+  histórica del vehículo utilizado en el envío
+
+**Gráficos:**
+
+- `pedidosPorSemana` se ordena de la semana más antigua (`semanasAtras: 7`)
+  a la más reciente (`semanasAtras: 0`), incluyendo semanas con cero pedidos
+- La semana `0` coincide con el período del resumen
+- `desgloseDiario` utiliza la zona `America/Argentina/Buenos_Aires`
+- Incluye únicamente fechas con pedidos o envíos seleccionados
+- Una ventana de siete días puede abarcar ocho fechas locales,
+  con el primer y último día parciales
+- Los porcentajes se redondean y pueden no sumar exactamente 100
+
+**Sin datos:**
+
+- Sin pedidos seleccionados, conteo y ventas son cero y los tickets son `null`
+- Los ahorros sin pedidos son `"0.000"`
+- Si faltan datos de impacto, el componente afectado y el total son `null`
+- Sin pedidos ni envíos seleccionados, `desgloseDiario` es `[]`
+
+**Tasa de abandono:**
+
+Según la definición acordada con Data, se consideran abandonados los
+pedidos con al menos un ítem que siguen en estado `pendiente` después
+de más de una hora desde su creación.
+
+- Numerador: pedidos que cumplen esa condición dentro del período
+- Denominador: todos los pedidos con ítems creados en el mismo período,
+  independientemente de su estado
+- Ambos conteos usan los últimos 7 días, según los límites de `periodo`
+- El filtro general `estadoPedido: "entregado"` no aplica a este bloque
+- Un pedido con exactamente una hora todavía no cuenta como abandonado
+- La tasa se calcula como `pedidosAbandonados / pedidosCreados × 100`
+- `tasaAbandonoPorcentaje` es un número redondeado a dos decimales
+- Sin pedidos elegibles, la tasa es `null`; si hay pedidos pero ninguno
+  abandonado, es `0`
+- Esta métrica no cambia estados ni cancela pedidos automáticamente
+- No utiliza eventos del frontend ni mide carritos que nunca se enviaron
+
+Ejemplo del bloque:
+
+```json
+{
+  "abandono": {
+    "estadoPedido": "pendiente",
+    "umbralHoras": 1,
+    "pedidosCreados": 3,
+    "pedidosAbandonados": 1,
+    "tasaAbandonoPorcentaje": 33.33
+  }
+}
+```
+
+**Errores:** `401` sin autenticación válida; `403` cuenta desactivada
+o rol distinto de administrador; `500` error interno.
+
+> **Nota de alcance:** los endpoints de envíos ya están integrados en `main`.
+> La subida de imágenes y la cancelación todavía no están implementadas.

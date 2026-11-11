@@ -1,132 +1,507 @@
 const prisma = require("../src/config/prisma");
 const bcrypt = require("bcrypt");
+const fs = require("node:fs");
+const path = require("node:path");
 
-/**
- * Datos iniciales de los roles del sistema
- */
+const DEMO_ACTIVA = process.env.SEED_DEMO === "true";
+
 const roles = [
-    {nombreRol: "cliente", nivelAcceso:"propio"},
-    {nombreRol: "gerente_restaurante", nivelAcceso:"restaurante"},
-    {nombreRol: "delivery", nivelAcceso: "delivery"},
-    {nombreRol: "admin", nivelAcceso: "global"},
-
+    { nombreRol: "cliente", nivelAcceso: "propio" },
+    { nombreRol: "gerente_restaurante", nivelAcceso: "restaurante" },
+    { nombreRol: "delivery", nivelAcceso: "delivery" },
+    { nombreRol: "admin", nivelAcceso: "global" },
 ];
 
-/**
- * Datos iniciales de restaurantes para la base de datos
- */
+// Los correos anteriores permiten conservar los IDs y las relaciones existentes
 const restaurantes = [
     {
-        nombre: "Verde Vivo",
+        clave: "veggie",
+        nombre: "Veggie",
+        descripcion: "Comida vegetariana",
         email: "contacto@verdevivo.test",
-        domicilio: "Av. Insurgentes Sur 100, CDMX",
-        latitude: 19.4326,
-        longitude: -99.1332,
-        estado: "activo",
-        categoriaComida: "vegano",
-    },
-    {
-        nombre: "Raiz Organica",
-        email: "hola@raizorganica.test",
-        domicilio: "Calle Durango 45, CDMX",
-        latitude: 19.4194,
-        longitude: -99.1627,
-        estado: "activo",
-        categoriaComida: "sin_tacc",
-    },
-    {
-        nombre: "Cocina Cerrada",
-        email: "info@cocinacerrada.test",
-        domicilio: "Av. Reforma 200, CDMX",
-        latitude: 19.4270,
-        longitude: -99.1677,
-        estado: "inactivo",
+        domicilio: "Plaza Italia, Av. Santa Fe, Palermo, Buenos Aires, Argentina",
+        latitude: "-34.5813720",
+        longitude: "-58.4209670",
         categoriaComida: "vegetariano",
+        archivoImagen: "Veggie",
+    },
+    {
+        clave: "hierbabuena",
+        nombre: "Hierbabuena",
+        descripcion: "Cocina natural y saludable",
+        email: "hola@raizorganica.test",
+        domicilio: "Plaza de las Naciones Unidas, Av. Figueroa Alcorta, Recoleta, Buenos Aires, Argentina",
+        latitude: "-34.5830190",
+        longitude: "-58.3932630",
+        categoriaComida: "comida_saludable",
+        archivoImagen: "Hierbabuena",
+    },
+    {
+        clave: "hornito",
+        nombre: "El Hornito Santiagueño",
+        descripcion: "Empanadas y cocina de horno",
+        email: "contacto@elhornito.test",
+        domicilio: "Caminito, La Boca, Buenos Aires, Argentina",
+        latitude: "-34.6386000",
+        longitude: "-58.3625000",
+        categoriaComida: "comida_rapida",
+        archivoImagen: "El_Hornito_Santiagueno",
+    },
+    {
+        clave: "mcdonalds",
+        nombre: "McDonald's",
+        descripcion: "Hamburguesas y papas",
+        email: "info@cocinacerrada.test",
+        domicilio: "Av. Corrientes y Av. 9 de Julio, Buenos Aires, Argentina",
+        latitude: "-34.6038510",
+        longitude: "-58.3817750",
+        categoriaComida: "comida_rapida",
+        archivoImagen: "mcdonalds",
     },
 ];
 
-/**
- * Crea la cuenta de administrador inicial con los datos del .env
- */
-async function crearAdmin() {
-    const { ADMIN_EMAIL, ADMIN_PASSWORD } = process.env;
+// Direcciones, precios y envases son datos de demostración
+// Cada número identifica permanentemente un plato del catálogo
+const platos = [
+    {
+        numero: 1,
+        restaurante: "veggie",
+        nombre: "Box Saludable de Falafel y Proteína Vegetal",
+        descripcion:
+            "Falafel sobre una base de quinua, acompañado de ensalada fresca, garbanzos, aceitunas y aderezo tahini",
+        archivoImagen: "Box_Saludable_de_Falafel_y_Proteina_Vegetal",
+        precio: "120.00",
+        cantidadPlatos: 0,
+        cantidadRecipiente: 1,
+    },
+    {
+        numero: 2,
+        restaurante: "hierbabuena",
+        nombre: "Tostada de Aguacate con Huevo Poché",
+        descripcion:
+            "Pan artesanal tostado con aguacate sazonado, coronado con un huevo poché y un toque de especias",
+        archivoImagen: "Tostada_de_Aguacate_con_Huevo_Poche",
+        precio: "95.00",
+        cantidadPlatos: 1,
+        cantidadRecipiente: 0,
+    },
+    {
+        numero: 3,
+        restaurante: "hornito",
+        nombre: "Empanadas Criollas",
+        descripcion:
+            "Tres empanadas de horno con masa dorada y crujiente, presentadas en una caja individual",
+        archivoImagen: "Empanadas_Criollas",
+        precio: "90.00",
+        cantidadPlatos: 0,
+        cantidadRecipiente: 1,
+    },
+    {
+        numero: 4,
+        restaurante: "veggie",
+        nombre: "Hamburguesa Vegetal Estilo Crispy",
+        descripcion:
+            "Medallón vegetal empanizado y crujiente con ensalada de repollo, tomate y lechuga en pan artesanal",
+        archivoImagen: "Hamburguesa_Vegetal_Estilo_Crispy",
+        precio: "115.00",
+        cantidadPlatos: 0,
+        cantidadRecipiente: 1,
+    },
+    {
+        numero: 5,
+        restaurante: "veggie",
+        nombre: "Nuggets de Tofu al Sésamo",
+        descripcion:
+            "Cubos de tofu crujientes cubiertos con semillas de sésamo, acompañados de salsa barbacoa agridulce",
+        archivoImagen: "Nuggets_de_Tofu_al_Sesamo",
+        precio: "95.00",
+        cantidadPlatos: 0,
+        cantidadRecipiente: 1,
+    },
+    {
+        numero: 6,
+        restaurante: "hornito",
+        nombre: "Pizza de Cebolla Morada y Queso",
+        descripcion:
+            "Pizza de masa gruesa con queso fundido, finas rodajas de cebolla morada y hierbas aromáticas",
+        archivoImagen: "Pizza_de_Cebolla_Morada_y_Queso",
+        precio: "145.00",
+        cantidadPlatos: 0,
+        cantidadRecipiente: 1,
+    },
+    {
+        numero: 7,
+        restaurante: "veggie",
+        nombre: "Bowl de Quinua, Calabaza y Aguacate",
+        descripcion:
+            "Quinua mixta con cubos de calabaza asada, rodajas de aguacate fresco y una mezcla de semillas",
+        archivoImagen: "Bowl_de_Quinua_Calabaza_y_Aguacate",
+        precio: "125.00",
+        cantidadPlatos: 0,
+        cantidadRecipiente: 1,
+    },
+    {
+        numero: 8,
+        restaurante: "hornito",
+        nombre: "Canelones Rellenos de Espinaca y Ricota",
+        descripcion:
+            "Canelones de espinaca y ricota bañados en bechamel, gratinados con queso y terminados con perejil",
+        archivoImagen: "Canelones_Rellenos_de_Espinaca_y_Ricota",
+        precio: "135.00",
+        cantidadPlatos: 0,
+        cantidadRecipiente: 1,
+    },
+    {
+        numero: 9,
+        restaurante: "hierbabuena",
+        nombre: "Risotto de Champiñones",
+        descripcion:
+            "Arroz cremoso preparado con champiñones salteados, hierbas aromáticas y queso parmesano rallado",
+        archivoImagen: "Risotto_de_Champinones",
+        precio: "130.00",
+        cantidadPlatos: 0,
+        cantidadRecipiente: 1,
+    },
+    {
+        numero: 10,
+        restaurante: "mcdonalds",
+        nombre: "Hamburguesa Clásica con Queso y Papas Fritas",
+        descripcion:
+            "Hamburguesa con queso fundido, tomate y lechuga en pan con ajonjolí, acompañada de papas fritas",
+        archivoImagen: "Hamburguesa_Clasica_con_Queso_y_Papas_Fritas",
+        precio: "135.00",
+        cantidadPlatos: 0,
+        cantidadRecipiente: 2,
+    },
+    {
+        numero: 11,
+        restaurante: "hierbabuena",
+        nombre: "Ensalada Rústica de Tomates Heirloom",
+        descripcion:
+            "Mezcla de tomates multicolor con hojas verdes y flores comestibles, servida en un plato de cerámica",
+        archivoImagen: "Ensalada_Rustica_de_Tomates_Heirloom",
+        precio: "95.00",
+        cantidadPlatos: 1,
+        cantidadRecipiente: 0,
+    },
+    {
+        numero: 12,
+        restaurante: "veggie",
+        nombre: "Hamburguesa Gourmet de Setas y Queso",
+        descripcion:
+            "Hamburguesa vegetariana crujiente con champiñones salteados, cebolla caramelizada y queso fundido",
+        archivoImagen: "Hamburguesa_Gourmet_de_Setas_y_Queso",
+        precio: "125.00",
+        cantidadPlatos: 0,
+        cantidadRecipiente: 1,
+    },
+    {
+        numero: 13,
+        restaurante: "hierbabuena",
+        nombre: "Bowl de Huevo y Aguacate",
+        descripcion:
+            "Aguacate acompañado de espinacas frescas, rábano sandía, tomates cherry y huevos de yema suave",
+        archivoImagen: "Bowl_Saludable_Estilo_Keto_con_Huevo_y_Aguacate",
+        precio: "115.00",
+        cantidadPlatos: 0,
+        cantidadRecipiente: 1,
+    },
+    {
+        numero: 14,
+        restaurante: "mcdonalds",
+        nombre: "Hamburguesa Doble Queso Estilo Cuarto de Libra",
+        descripcion:
+            "Hamburguesa con queso cheddar fundido, pepinillos, cebolla y salsa sobre pan con semillas de sésamo",
+        archivoImagen: "Hamburguesa_Doble_Queso_Estilo_Cuarto_de_Libra",
+        precio: "125.00",
+        cantidadPlatos: 0,
+        cantidadRecipiente: 1,
+    },
+];
 
-    if (!ADMIN_EMAIL || !ADMIN_PASSWORD){
-        console.warn("Seed: ADMIN_EMAIL o ADMIN_PASSWORD no definidos, no se creo el admin");
-        return;
+const cuentas = [
+    {
+        nombre: "Ana López",
+        email: "cliente1@demo.ecobite.test",
+        rol: "cliente",
+        archivoImagen: "ana-lopez",
+    },
+    {
+        nombre: "Luis García",
+        email: "cliente2@demo.ecobite.test",
+        rol: "cliente",
+        archivoImagen: "luis-garcia",
+    },
+    {
+        nombre: "Laura Martínez",
+        email: "gerente.verde@demo.ecobite.test",
+        rol: "gerente_restaurante",
+        restaurante: "veggie",
+        archivoImagen: "laura-martinez",
+    },
+    {
+        nombre: "Carlos Pérez",
+        email: "gerente.raiz@demo.ecobite.test",
+        rol: "gerente_restaurante",
+        restaurante: "hierbabuena",
+        archivoImagen: "carlos-perez",
+    },
+        {
+        nombre: "Martín González",
+        email: "gerente.hornito@demo.ecobite.test",
+        rol: "gerente_restaurante",
+        restaurante: "hornito",
+        archivoImagen: "martin-gonzalez",
+    },
+    {
+        nombre: "Lucía Fernández",
+        email: "gerente.mcdonalds@demo.ecobite.test",
+        rol: "gerente_restaurante",
+        restaurante: "mcdonalds",
+        archivoImagen: "lucia-fernandez",
+    },
+    {
+        nombre: "Diego Torres",
+        email: "delivery1@demo.ecobite.test",
+        rol: "delivery",
+        archivoImagen: "diego-torres",
+    },
+    {
+        nombre: "Sofía Ramírez",
+        email: "delivery2@demo.ecobite.test",
+        rol: "delivery",
+        archivoImagen: "sofia-ramirez",
+    },
+];
+
+const imagenesPendientes = new Set(); // evita repetir avisos del mismo archivo
+
+// Obtiene una URL pública únicamente cuando existe el archivo
+function buscarImagen(carpeta, nombre) {
+    for (const extension of ["jpg", "jpeg", "png", "webp"]) {
+        const archivo = `${nombre}.${extension}`;
+        const ruta = path.join(
+            __dirname,
+            "../public/images",
+            carpeta,
+            archivo
+        ); // resuelve la ubicación desde la carpeta prisma
+
+        if (fs.existsSync(ruta)) {
+            return `/images/${carpeta}/${archivo}`;
+        }
     }
-    const email = ADMIN_EMAIL.trim().toLocaleLowerCase();
-    const rolAdmin = await prisma.tipoUsuario.findUnique({
-        where: { nombreRol: "admin" },
+
+    imagenesPendientes.add(`${carpeta}/${nombre}`);
+    return null;
+}
+
+function validarPassword(password, variable) {
+    if (
+        !password ||
+        password.length < 15 ||
+        Buffer.byteLength(password, "utf8") > 72 // comprueba el límite de bytes de bcrypt
+    ) {
+        throw new Error(
+            `${variable} debe tener al menos 15 caracteres y máximo 72 bytes`
+        );
+    }
+}
+
+// Calcula los hashes antes de abrir la transacción
+async function prepararCredenciales() {
+    let admin = null;
+    let hashDemo = null;
+
+    const emailAdmin = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+
+    if (emailAdmin) {
+        if (cuentas.some((cuenta) => cuenta.email === emailAdmin)) {
+            throw new Error("ADMIN_EMAIL no puede ser el correo de una cuenta demo");
+        }
+
+        const existente = await prisma.usuario.findUnique({
+            where: { email: emailAdmin },
+        });
+
+        if (existente) {
+            admin = { email: emailAdmin, hash: null };
+        } else if (process.env.ADMIN_PASSWORD) {
+            validarPassword(process.env.ADMIN_PASSWORD, "ADMIN_PASSWORD");
+            admin = {
+                email: emailAdmin,
+                hash: await bcrypt.hash(process.env.ADMIN_PASSWORD, 10),
+            };
+        } else {
+            console.warn("Administrador omitido: falta ADMIN_PASSWORD");
+        }
+    } else {
+        console.warn("Administrador omitido: falta ADMIN_EMAIL");
+    }
+
+    if (DEMO_ACTIVA) {
+        const existentes = await prisma.usuario.count({
+            where: {
+                email: { in: cuentas.map((cuenta) => cuenta.email) },
+            },
+        });
+
+        if (existentes < cuentas.length) {
+            validarPassword(
+                process.env.SEED_DEMO_PASSWORD,
+                "SEED_DEMO_PASSWORD"
+            );
+            hashDemo = await bcrypt.hash(process.env.SEED_DEMO_PASSWORD, 10);
+        }
+    }
+
+    return { admin, hashDemo };
+}
+
+// Actualiza nombre e imagen sin cambiar contraseña, estado ni permisos
+async function guardarUsuario(tx, cuenta, rolId, restauranteId, hash) {
+    const existente = await tx.usuario.findUnique({
+        where: { email: cuenta.email },
     });
 
-    const hash = await bcrypt.hash(ADMIN_PASSWORD, 10);
-    
-    await prisma.usuario.upsert({
-        where: { email },
-        update: {},
-        create: {
-            nombre: "Administrador",
-            email,
+    if (
+        existente &&
+        (
+            existente.tipoUsuarioId !== rolId ||
+            existente.restauranteId !== restauranteId
+        )
+    ) {
+        throw new Error(
+            `La cuenta ${cuenta.email} tiene otro rol o restaurante`
+        );
+    }
+
+    const imagen = buscarImagen("usuarios", cuenta.archivoImagen);
+    const cambios = { nombre: cuenta.nombre };
+
+    if (imagen !== null) {
+        cambios.imagenUri = imagen;
+    }
+
+    if (existente) {
+        return tx.usuario.update({
+            where: { id: existente.id },
+            data: cambios,
+        });
+    }
+
+    if (!hash) {
+        throw new Error(`Falta contraseña para crear ${cuenta.email}`);
+    }
+
+    return tx.usuario.create({
+        data: {
+            nombre: cuenta.nombre,
+            email: cuenta.email,
             contrasena: hash,
-            tipoUsuarioId: rolAdmin.id,
+            tipoUsuarioId: rolId,
+            restauranteId,
+            activo: true,
+            imagenUri: imagen,
         },
     });
 }
 
-// Crea perfiles delivery y sus asociaciones con restaurantes
-async function crearDeliveriesDemo() {
-    if (process.env.SEED_DEMO !== "true") {
-        return;
-    }
+// Genera un UUID estable para cada plato del nuevo catálogo
+function obtenerIdPlato(numero) {
+    const sufijo = String(numero).padStart(12, "0"); // completa el número con ceros a la izquierda
+    return `a43c7d21-6b58-4e91-9c20-${sufijo}`;
+}
 
-    await prisma.$transaction(async (tx) => { // revierte este bloque completo si alguna operación falla
-        const transporte = await tx.tipoTransporte.upsert({ // reutiliza el transporte si ya existe
+async function main() {
+    const credenciales = await prepararCredenciales();
+
+    await prisma.$transaction(async (tx) => {
+        const rolesPorNombre = new Map(); // permite recuperar un rol por su nombre
+
+        for (const rol of roles) {
+            const registro = await tx.tipoUsuario.upsert({
+                where: { nombreRol: rol.nombreRol },
+                update: {},
+                create: rol,
+            });
+
+            rolesPorNombre.set(rol.nombreRol, registro);
+        }
+
+        if (credenciales.admin) {
+            await guardarUsuario(
+                tx,
+                {
+                    nombre: "Alex Romero",
+                    email: credenciales.admin.email,
+                    archivoImagen: "alex-romero",
+                },
+                rolesPorNombre.get("admin").id,
+                null,
+                credenciales.admin.hash
+            );
+        }
+
+        if (!DEMO_ACTIVA) {
+            return;
+        }
+
+        const restaurantesPorClave = new Map();
+
+        for (const restaurante of restaurantes) {
+            const {
+                clave,
+                archivoImagen,
+                ...datos
+            } = restaurante; // separa los campos auxiliares de los datos de Prisma
+
+            const imagen = buscarImagen("restaurantes", archivoImagen);
+            const cambios = { ...datos, estado: "activo" };
+
+            if (imagen !== null) {
+                cambios.imagenUrl = imagen;
+            }
+
+            const registro = await tx.restaurante.upsert({
+                where: { email: datos.email },
+                update: cambios,
+                create: {
+                    ...datos,
+                    estado: "activo",
+                    imagenUrl: imagen,
+                },
+            });
+
+            restaurantesPorClave.set(clave, registro);
+        }
+
+        const usuariosPorEmail = new Map();
+
+        for (const cuenta of cuentas) {
+            const restauranteId = cuenta.restaurante
+                ? restaurantesPorClave.get(cuenta.restaurante).id
+                : null;
+
+            const usuario = await guardarUsuario(
+                tx,
+                cuenta,
+                rolesPorNombre.get(cuenta.rol).id,
+                restauranteId,
+                credenciales.hashDemo
+            );
+
+            usuariosPorEmail.set(cuenta.email, usuario);
+        }
+
+        const transporte = await tx.tipoTransporte.upsert({
             where: { descripcion: "bicicleta" },
             update: {},
             create: { descripcion: "bicicleta" },
         });
 
-        const rol = await tx.tipoUsuario.findUnique({
-            where: { nombreRol: "delivery" },
-        });
-
-        if (!rol) {
-            throw new Error("No existe el rol delivery");
-        }
-
-        const emailsRestaurantes = [
-            "contacto@verdevivo.test",
-            "hola@raizorganica.test",
-        ];
-
-        const restaurantesDemo = [];
-
-        for (const email of emailsRestaurantes) {
-            const restaurante = await tx.restaurante.findUnique({
-                where: { email },
-            });
-
-            if (!restaurante) {
-                throw new Error(`No existe el restaurante ${email}`);
-            }
-
-            restaurantesDemo.push(restaurante); // agrega el restaurante a la lista de asociaciones
-        }
-
-        const emailsDeliveries = [
-            "delivery1@demo.ecobite.test",
-            "delivery2@demo.ecobite.test",
-        ];
-
-        for (const email of emailsDeliveries) {
-            const usuario = await tx.usuario.findUnique({
-                where: { email },
-            });
-
-            if (!usuario || usuario.tipoUsuarioId !== rol.id) {
-                throw new Error(`No existe una cuenta delivery válida para ${email}`);
-            }
+        for (const cuenta of cuentas.filter((c) => c.rol === "delivery")) {
+            const usuario = usuariosPorEmail.get(cuenta.email);
 
             const delivery = await tx.delivery.upsert({
                 where: { usuarioId: usuario.id },
@@ -137,10 +512,10 @@ async function crearDeliveriesDemo() {
                 },
             });
 
-            for (const restaurante of restaurantesDemo) {
+            for (const restaurante of restaurantesPorClave.values()) {
                 await tx.deliveryRestaurante.upsert({
                     where: {
-                        deliveryId_restauranteId: { // identifica la combinación única definida en el schema
+                        deliveryId_restauranteId: { // busca la combinación única de delivery y restaurante
                             deliveryId: delivery.id,
                             restauranteId: restaurante.id,
                         },
@@ -153,252 +528,89 @@ async function crearDeliveriesDemo() {
                 });
             }
         }
-    });
 
-    console.log("Perfiles y asociaciones de deliveries demo disponibles");
-}
-
-// Crea platos demo sin modificar los registros existentes
-async function crearPlatosDemo() {
-    if (process.env.SEED_DEMO !== "true") {
-        return;
-    }
-
-    const platos = [
-        {
-            id: "d39fa2a1-8913-4c8a-92b0-000000000001",
-            restauranteEmail: "contacto@verdevivo.test",
-            nombre: "Bowl de quinoa",
-            precio: "120.00",
-            activo: true,
-            cantidadPlatos: 0,
-            cantidadRecipiente: 1,
-        },
-        {
-            id: "d39fa2a1-8913-4c8a-92b0-000000000002",
-            restauranteEmail: "contacto@verdevivo.test",
-            nombre: "Ensalada de garbanzos",
-            precio: "95.00",
-            activo: true,
-            cantidadPlatos: 1,
-            cantidadRecipiente: 0,
-        },
-        {
-            id: "d39fa2a1-8913-4c8a-92b0-000000000003",
-            restauranteEmail: "hola@raizorganica.test",
-            nombre: "Bowl de arroz y verduras",
-            precio: "110.00",
-            activo: true,
-            cantidadPlatos: 0,
-            cantidadRecipiente: 1,
-        },
-        {
-            id: "d39fa2a1-8913-4c8a-92b0-000000000004",
-            restauranteEmail: "hola@raizorganica.test",
-            nombre: "Ensalada de nopales",
-            precio: "85.50",
-            activo: true,
-            cantidadPlatos: 1,
-            cantidadRecipiente: 0,
-        },
-        {
-            id: "d39fa2a1-8913-4c8a-92b0-000000000005",
-            restauranteEmail: "contacto@verdevivo.test",
-            nombre: "Plato demo no disponible",
-            precio: "90.00",
-            activo: false,
-            cantidadPlatos: 1,
-            cantidadRecipiente: 0,
-        },
-    ];
-
-    await prisma.$transaction(async (tx) => { // guarda este bloque completo o lo revierte si falla
         for (const plato of platos) {
-            const restaurante = await tx.restaurante.findUnique({
-                where: { email: plato.restauranteEmail },
+            const id = obtenerIdPlato(plato.numero);
+            const restaurante = restaurantesPorClave.get(plato.restaurante);
+
+            const existente = await tx.plato.findUnique({
+                where: { id },
             });
 
-            if (!restaurante) {
-                throw new Error(
-                    `No existe el restaurante ${plato.restauranteEmail}`
-                );
+            if (existente && existente.restauranteId !== restaurante.id) {
+                throw new Error(`El plato ${id} pertenece a otro restaurante`);
             }
 
-            const guardado = await tx.plato.upsert({ // identifica cada plato por su UUID fijo
-                where: { id: plato.id },
-                update: {},
+            const imagen = buscarImagen("platos", plato.archivoImagen);
+
+            const datos = {
+                nombre: plato.nombre,
+                descripcion: plato.descripcion,
+                precio: plato.precio,
+                activo: true,
+                cantidadVasos: 0,
+                cantidadPlatos: plato.cantidadPlatos,
+                cantidadCubiertos: 1,
+                cantidadRecipiente: plato.cantidadRecipiente,
+            };
+
+            const cambios = { ...datos };
+
+            if (imagen !== null) {
+                cambios.imagenUrl = imagen;
+            }
+
+            await tx.plato.upsert({
+                where: { id },
+                update: cambios,
                 create: {
-                    id: plato.id,
+                    id,
                     restauranteId: restaurante.id,
-                    nombre: plato.nombre,
-                    precio: plato.precio,
-                    activo: plato.activo,
-                    imagenUrl: null,
-                    cantidadVasos: 0,
-                    cantidadPlatos: plato.cantidadPlatos,
-                    cantidadCubiertos: 1,
-                    cantidadRecipiente: plato.cantidadRecipiente,
+                    ...datos,
+                    imagenUrl: imagen,
                 },
             });
-
-            if (guardado.restauranteId !== restaurante.id) {
-                throw new Error(
-                    `El plato ${plato.id} ya pertenece a otro restaurante`
-                );
-            }
         }
-    });
 
-    console.log("Platos demo disponibles");
-}
+        const idsAnteriores = Array.from(
+            { length: 17 },
+            (_, indice) =>
+                `d39fa2a1-8913-4c8a-92b0-${String(indice + 1).padStart(12, "0")}`
+        ); // enumera únicamente los IDs utilizados en las seeds anteriores
 
-//Inserta o actualiza datos iniciales
-async function main() {
-    for(const rol of roles){
-        await prisma.tipoUsuario.upsert({
-            where: { nombreRol: rol.nombreRol },
-            update: {},
-            create: rol,
-        });
-    }
-    // crear el administrador inicial
-    await crearAdmin();
-
-    for(const r of restaurantes){
-        await prisma.restaurante.upsert({
-            where: {email: r.email},
-            update: {},
-            create: r,
-        });
-    }
-
-    for (const r of restaurantes) {
-        await prisma.restaurante.upsert({
-            where: { email: r.email },
-            update: {},
-            create: r,
-        });
-    }
-
-    await crearUsuariosDemo();
-    await crearDeliveriesDemo();
-    await crearPlatosDemo();
-
-    console.log("Seed completado");
-
-}
-
-// Crea cuentas de prueba sin modificar usuarios existentes
-async function crearUsuariosDemo() {
-    if (process.env.SEED_DEMO !== "true") {
-        return;
-    }
-
-    const password = process.env.SEED_DEMO_PASSWORD;
-
-    if (
-        !password ||
-        password.length < 15 ||
-        Buffer.byteLength(password, "utf8") > 72 // mide los bytes que admite bcrypt
-    ) {
-        throw new Error(
-            "SEED_DEMO_PASSWORD debe tener al menos 15 caracteres y máximo 72 bytes"
-        );
-    }
-
-    const cuentas = [
-        {
-            nombre: "Cliente Demo 1",
-            email: "cliente1@demo.ecobite.test",
-            rol: "cliente",
-        },
-        {
-            nombre: "Cliente Demo 2",
-            email: "cliente2@demo.ecobite.test",
-            rol: "cliente",
-        },
-        {
-            nombre: "Gerente Verde Vivo",
-            email: "gerente.verde@demo.ecobite.test",
-            rol: "gerente_restaurante",
-            restauranteEmail: "contacto@verdevivo.test",
-        },
-        {
-            nombre: "Gerente Raiz Organica",
-            email: "gerente.raiz@demo.ecobite.test",
-            rol: "gerente_restaurante",
-            restauranteEmail: "hola@raizorganica.test",
-        },
-        {
-            nombre: "Delivery Demo 1",
-            email: "delivery1@demo.ecobite.test",
-            rol: "delivery",
-        },
-        {
-            nombre: "Delivery Demo 2",
-            email: "delivery2@demo.ecobite.test",
-            rol: "delivery",
-        },
-    ];
-
-    const hash = await bcrypt.hash(password, 10); // genera el hash de la contraseña de prueba
-
-    await prisma.$transaction(async (tx) => { // guarda todas las cuentas juntas o revierte si alguna falla
-        for (const cuenta of cuentas) {
-            const rol = await tx.tipoUsuario.findUnique({
-                where: { nombreRol: cuenta.rol },
-            });
-
-            if (!rol) {
-                throw new Error(`No existe el rol ${cuenta.rol}`);
-            }
-
-            let restauranteId = null;
-
-            if (cuenta.restauranteEmail) {
-                const restaurante = await tx.restaurante.findUnique({
-                    where: { email: cuenta.restauranteEmail },
-                });
-
-                if (!restaurante) {
-                    throw new Error(
-                        `No existe el restaurante ${cuenta.restauranteEmail}`
-                    );
-                }
-
-                restauranteId = restaurante.id;
-            }
-
-            const usuario = await tx.usuario.upsert({ // crea por email y conserva el registro si ya existe
-                where: { email: cuenta.email },
-                update: {},
-                create: {
-                    nombre: cuenta.nombre,
-                    email: cuenta.email,
-                    contrasena: hash,
-                    tipoUsuarioId: rol.id,
-                    restauranteId,
-                    activo: true,
-                    imagenUri: null,
+        await tx.plato.updateMany({
+            where: {
+                id: { in: idsAnteriores },
+                restauranteId: {
+                    in: Array.from(
+                        restaurantesPorClave.values(),
+                        (restaurante) => restaurante.id
+                    ),
                 },
-            });
-
-            if (
-                usuario.tipoUsuarioId !== rol.id ||
-                usuario.restauranteId !== restauranteId
-            ) {
-                throw new Error(
-                    `La cuenta ${cuenta.email} ya existe con otro rol o restaurante`
-                );
-            }
-        }
+            },
+            data: { activo: false },
+        });
+    }, {
+        timeout: 30000, // permite hasta 30 segundos y revierte los cambios si falla
     });
 
-    console.log("Cuentas demo disponibles");
+    console.log(
+        DEMO_ACTIVA
+            ? "Seed completada: 4 restaurantes, 14 platos y 8 cuentas demo"
+            : "Roles y administrador procesados; catálogo demo desactivado"
+    );
+
+    if (imagenesPendientes.size > 0) {
+        console.log("Imágenes pendientes:");
+        for (const imagen of imagenesPendientes) {
+            console.log(`- ${imagen}`);
+        }
+    }
 }
 
-
-main().catch((e) => {
-    console.error(e);
-    process.exit(1);
-}).finally(() => prisma.$disconnect());
+main()
+    .catch((error) => {
+        console.error(error);
+        process.exitCode = 1; // indica el fallo sin impedir el cierre de la conexión
+    })
+    .finally(() => prisma.$disconnect());
