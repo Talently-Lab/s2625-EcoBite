@@ -1,6 +1,22 @@
-export default function FoodCard({ title, store, originalPrice, discountPrice, pickupTime, image, tags }) {
+import { useNavigate } from 'react-router-dom'
+
+export default function FoodCard({ id, title, store, originalPrice, discountPrice, pickupTime, image, tags }) {
+  const navigate = useNavigate()
+
+  const handleCardClick = () => {
+    const prodId = id
+    if (prodId) {
+      navigate(`/product/${prodId}`)
+    } else {
+      console.warn("El plato no tiene un ID válido asociado.")
+    }
+  }
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition overflow-hidden group flex flex-col">
+    <div 
+      onClick={handleCardClick}
+      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition overflow-hidden group flex flex-col cursor-pointer"
+    >
       {/* Imagen & Badges */}
       <div className="relative h-44 bg-gray-100 overflow-hidden">
         <img
@@ -35,7 +51,13 @@ export default function FoodCard({ title, store, originalPrice, discountPrice, p
             <span className="text-lg font-bold text-ecobrand-700">${discountPrice}</span>
           </div>
 
-          <button className="bg-ecobrand-500 hover:bg-ecobrand-600 text-white text-xs font-semibold px-3 py-2 rounded-xl transition shadow-sm active:scale-95">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation()
+              handleCardClick()
+            }}
+            className="bg-ecobrand-500 hover:bg-ecobrand-600 text-white text-xs font-semibold px-3 py-2 rounded-xl transition shadow-sm active:scale-95"
+          >
             Agregar
           </button>
         </div>

@@ -42,7 +42,6 @@ export const restaurantesService = {
   },
 
   getStoreProducts: async (storeId) => {
-    // CORRECCIÓN CLAVE: Apunta exactamente a la ruta del backend /restaurantes/:id/platos
     const respuesta = await apiFetch(`/restaurantes/${storeId}/platos`)
     const lista = Array.isArray(respuesta) ? respuesta : (respuesta?.data || [])
     return lista.map(normalizarPlato)

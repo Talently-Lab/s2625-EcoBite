@@ -7,42 +7,6 @@ import banner4 from '../assets/Carrusel/banner4.png'
 
 import { restaurantesService } from '../services/restaurantesService'
 
-// Platos de respaldo por si el backend en Docker aún no tiene registros en la base de datos
-const PLATOS_BACKUP = [
-  {
-    id: 'plato-1',
-    nombre: 'Ensalada Orgánica Verdor',
-    descripcion: 'Mix de hojas verdes hidropónicas, frutos secos y aderezo de cítricos.',
-    precio: 3500,
-    imagenUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&auto=format&fit=crop&q=60',
-    calificacion: '4.8'
-  },
-  {
-    id: 'plato-2',
-    nombre: 'Burger Veggie Lentinas',
-    descripcion: 'Medallón de lentejas germinadas, pan de masa madre y queso almendrado.',
-    precio: 5200,
-    imagenUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60',
-    calificacion: '4.9'
-  },
-  {
-    id: 'plato-3',
-    nombre: 'Bowl Cero Residuos Quínoa',
-    descripcion: 'Quínoa orgánica, vegetales estacionarios rostizados y tahini.',
-    precio: 4800,
-    imagenUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&auto=format&fit=crop&q=60',
-    calificacion: '4.7'
-  },
-  {
-    id: 'plato-4',
-    nombre: 'Wrap de Falafel Verde',
-    descripcion: 'Falafel crujiente al horno, hummus casero y pickles en pan integral.',
-    precio: 4100,
-    imagenUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=500&auto=format&fit=crop&q=60',
-    calificacion: '4.6'
-  }
-]
-
 export default function Home() {
   const navigate = useNavigate()
 
@@ -60,11 +24,18 @@ export default function Home() {
   const categories = ['Todos', 'Vegano', 'Vegetariano', 'Cero residuos', 'Envío verde']
 
   const resolveImageUrl = (item) => {
-    const rawPath = item?.imagenUrl || item?.imagen || item?.img || item?.image || item?.urlImagen;
+    const rawPath = item?.imagenUrl || item?.imagen || item?.urlImagen || item?.img || item?.image;
     if (!rawPath) {
       return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60';
     }
     return rawPath.startsWith('http') ? rawPath : `http://localhost:3000${rawPath}`;
+  };
+
+  const handleProductClick = (plato) => {
+    const prodId = plato.id || plato._id;
+    if (prodId) {
+      navigate(`/product/${prodId}`);
+    }
   };
 
   useEffect(() => {
@@ -73,32 +44,33 @@ export default function Home() {
         setLoading(true)
         setError(null)
 
-        // 1. Cargamos los locales reales
+        // 1. Cargamos los locales reales de la API
         const listaLocales = await restaurantesService.getAllStores()
-        setLocales(listaLocales)
+        setLocales(listaLocales || [])
 
-        // 2. Intentamos buscar platos del primer restaurante
-        let listaPlatos = []
+        // 2. Cargamos los platos recorriendo los locales con getStoreProducts
+        let todosLosPlatos = []
         if (listaLocales && listaLocales.length > 0) {
-          const primerLocalId = listaLocales[0].id || listaLocales[0]._id
-          if (primerLocalId) {
-            const resPlatos = await restaurantesService.getStoreProducts(primerLocalId)
-            listaPlatos = Array.isArray(resPlatos) ? resPlatos : (resPlatos?.data || [])
+          for (const store of listaLocales) {
+            const storeId = store.id || store._id
+            try {
+              const platosLocal = await restaurantesService.getStoreProducts(storeId)
+              if (Array.isArray(platosLocal)) {
+                const platosConLocal = platosLocal.map(p => ({ ...p, restauranteNombre: store.name || store.nombre }))
+                todosLosPlatos = [...todosLosPlatos, ...platosConLocal]
+              }
+            } catch (err) {
+              console.warn(`No se pudieron cargar platos para el local ${storeId}`, err)
+            }
           }
         }
-
-        // 3. Si el backend devuelve vacío, usamos el respaldo para que la interfaz no quede vacía
-        if (!listaPlatos || listaPlatos.length === 0) {
-          console.log("ℹ️ Usando platos de respaldo (el backend de Docker no devolvió platos activos).")
-          listaPlatos = PLATOS_BACKUP
-        }
-
-        setPlatos(listaPlatos)
+        setPlatos(todosLosPlatos)
 
       } catch (err) {
         console.error('Error al conectar con el backend:', err)
-        setError('Error de conexión con el servidor. Mostrando datos de respaldo.')
-        setPlatos(PLATOS_BACKUP)
+        setError('Error de conexión con el servidor.')
+        setPlatos([])
+        setLocales([])
       } finally {
         setLoading(false)
       }
@@ -304,7 +276,7 @@ export default function Home() {
                   platos.map((plato) => (
                     <div
                       key={plato.id || plato._id}
-                      onClick={() => navigate(`/product/${plato.id || plato._id}`)}
+                      onClick={() => handleProductClick(plato)}
                       className="w-44 sm:w-auto shrink-0 bg-white rounded-2xl p-2.5 border border-gray-100 shadow-2xs cursor-pointer space-y-2 hover:shadow-md transition flex flex-col justify-between"
                     >
                       <div>
@@ -330,7 +302,7 @@ export default function Home() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-gray-400 col-span-full py-4">No hay productos disponibles.</p>
+                  <p className="text-xs text-gray-400 col-span-full py-4">No hay productos disponibles en la API.</p>
                 )}
               </div>
             </section>
@@ -358,11 +330,11 @@ export default function Home() {
                         <h3 className="font-bold text-xs sm:text-sm text-gray-900 leading-snug">
                           {plato.name || plato.nombre}
                         </h3>
-                        <p className="text-xs text-gray-500">{plato.store || plato.restaurante || ''}</p>
+                        <p className="text-xs text-gray-500">{plato.restauranteNombre || plato.store || plato.restaurante || ''}</p>
                       </div>
 
                       <button
-                        onClick={() => navigate(`/product/${plato.id || plato._id}`)}
+                        onClick={() => handleProductClick(plato)}
                         className="px-4 py-2.5 bg-[#3D2314] hover:bg-[#2A180D] text-white text-xs font-medium rounded-full transition flex items-center gap-1 shrink-0 cursor-pointer"
                       >
                         Ver detalle →
@@ -370,7 +342,7 @@ export default function Home() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-gray-400 py-4">No hay sugerencias disponibles.</p>
+                  <p className="text-xs text-gray-400 py-4">No hay sugerencias disponibles en la API.</p>
                 )}
               </div>
             </section>

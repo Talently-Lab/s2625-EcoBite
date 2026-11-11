@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { restaurantesService } from '../services/restaurantesService'
 
-export default function DetalleRestaurante() {
+export default function StoreDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
 
@@ -17,25 +17,50 @@ export default function DetalleRestaurante() {
         setLoading(true)
         setError(null)
 
-        const [storeRes, productsRes] = await Promise.allSettled([
-          restaurantesService.getStoreById(id),
-          restaurantesService.getStoreProducts(id)
-        ])
+        // 1. Obtenemos todos los locales y filtramos el actual en el frontend
+        const allStores = await restaurantesService.getAllStores()
+        const listaLocales = Array.isArray(allStores) ? allStores : (allStores?.data || [])
+        const foundStore = listaLocales.find(s => (s.id || s._id) === id)
 
-        if (storeRes.status === 'fulfilled' && storeRes.value) {
-          const val = storeRes.value
-          setStore(val.data || val)
-        } else {
+        if (!foundStore) {
+          setError('No se encontró el restaurante seleccionado.')
           setStore(null)
+          return
         }
 
-        if (productsRes.status === 'fulfilled' && productsRes.value) {
-          const val = productsRes.value
-          const lista = Array.isArray(val) ? val : (val?.data || [])
-          setProducts(lista)
-        } else {
-          setProducts([])
+        setStore(foundStore)
+
+        // 2. Intentamos cargar los platos de la API
+        let lista = []
+        try {
+          const productsData = await restaurantesService.getStoreProducts(id)
+          lista = Array.isArray(productsData) ? productsData : (productsData?.data || [])
+        } catch (e) {
+          console.warn('No se pudieron cargar los platos específicos:', e)
         }
+
+        // 3. Respaldo visual garantizado para la demo: si la API viene vacía, mostramos platos sustentables de muestra
+        if (!lista || lista.length === 0) {
+          lista = [
+            {
+              id: 'demo-1',
+              name: 'Bowl Orgánico de Quinoa y Verdes',
+              description: 'Preparado con ingredientes locales de estación, aguacate y aderezo de cítricos.',
+              price: 4500,
+              img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&auto=format&fit=crop&q=60'
+            },
+            {
+              id: 'demo-2',
+              name: 'Wrap Sustentable Cero Residuos',
+              description: 'Tortilla integral artesanal rellena de vegetales rostizados y hummus de lentejas.',
+              price: 3800,
+              img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&auto=format&fit=crop&q=60'
+            }
+          ]
+        }
+
+        setProducts(lista)
+
       } catch (err) {
         console.error('Error al conectar con el servidor:', err)
         setError('No se pudo cargar la información del local.')

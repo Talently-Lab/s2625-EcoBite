@@ -12,13 +12,13 @@ import Register from './pages/Register'
 import Profile from './pages/Profile' 
 import Landing from './pages/Landing'
 
-
 export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/catalog" element={<Home />} /> {/* <-- Añadida para evitar el error en blanco */}
           <Route path="/store/:id" element={<StoreDetail />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
@@ -27,7 +27,6 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} /> 
           <Route path="/landing" element={<Landing />} />
-
         </Routes>
       </CartProvider>
     </AuthProvider>

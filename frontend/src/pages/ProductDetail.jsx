@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
-import { productsService } from '../services/productsService'
+import { restaurantesService } from '../services/restaurantesService'
 
 export default function ProductDetail() {
   const navigate = useNavigate()
@@ -28,14 +28,18 @@ export default function ProductDetail() {
     { id: 'clasico', nombre: 'Pan Clásico', extra: 0 },
   ]
 
-  // Cargar el producto real desde el backend
+  // Cargar el producto real desde el backend usando la API de restaurantes/productos
   useEffect(() => {
     async function fetchProductDetail() {
       try {
         setLoading(true)
         setError(null)
-        const data = await productsService.getProductById(id)
-        // Manejamos si el backend devuelve un objeto directo o envuelto en .data
+        
+        // Verificamos si existe el método en el servicio o usamos apiFetch directo si fuera necesario
+        const data = await restaurantesService.getProductById ? 
+                     await restaurantesService.getProductById(id) : 
+                     await restaurantesService.getStoreProducts(id) // Ajuste de respaldo si el servicio varía
+
         const prodData = data?.data || data
         setProducto(prodData)
       } catch (err) {
@@ -70,7 +74,7 @@ export default function ProductDetail() {
     )
   }
 
-  // Precios y cálculos basados estrictamente en propiedades en español
+  // Precios y cálculos basados estrictamente en propiedades de la API
   const precioBase = Number(producto.precio || producto.price || 0)
   const extraMedallon = opcionesMedallon.find(m => m.id === selectedMedallon)?.extra || 0
   const extraPan = opcionesPan.find(p => p.id === selectedPan)?.extra || 0
@@ -110,7 +114,7 @@ export default function ProductDetail() {
           ←
         </button>
 
-        {/* Imagen 100% Real de la API */}
+        {/* Imagen del plato */}
         <div className="w-full h-72 sm:h-80 bg-white overflow-hidden flex items-center justify-center p-4">
           {imagenReal ? (
             <img 

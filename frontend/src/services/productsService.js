@@ -34,7 +34,8 @@ export const productsService = {
             : (response?.data || response?.platos || [])
           
           if (platosList.length > 0) {
-            const platosNormalizados = platosList.map(normalizarPlato)
+            // Adjuntamos el storeId a cada plato para conservar la relación
+            const platosNormalizados = platosList.map(p => normalizarPlato({ ...p, storeId }))
             allPlatos = [...allPlatos, ...platosNormalizados]
           }
         } catch {
@@ -50,8 +51,22 @@ export const productsService = {
   },
 
   getProductById: async (id) => {
-    const response = await apiFetch(`/platos/${id}`)
-    const item = response?.data || response
-    return normalizarPlato(item)
+    try {
+      // Intentamos primero la ruta directa por si el backend la soporta en el futuro
+      const response = await apiFetch(`/platos/${id}`)
+      const item = response?.data || response
+      return normalizarPlato(item)
+    } catch (error) {
+      // Fallback: como los platos están anidados por restaurante, 
+      // los buscamos a través de los productos destacados de la API
+      console.warn(`Ruta directa /platos/${id} no disponible, buscando en los locales...`)
+      const allPlatos = await productsService.getFeaturedProducts()
+      const found = allPlatos.find(p => p.id === id || p._id === id)
+      
+      if (found) {
+        return found
+      }
+      throw new Error('Producto no encontrado en el servidor.')
+    }
   }
 }
