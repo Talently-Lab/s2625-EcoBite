@@ -23,12 +23,19 @@ export default function Home() {
 
   const categories = ['Todos', 'Vegano', 'Vegetariano', 'Cero residuos', 'Envío verde']
 
+  // Función robusta para resolver la URL de la imagen usando la nube de Render
   const resolveImageUrl = (item) => {
     const rawPath = item?.imagenUrl || item?.imagen || item?.urlImagen || item?.img || item?.image;
     if (!rawPath) {
       return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60';
     }
-    return rawPath.startsWith('http') ? rawPath : `http://localhost:3000${rawPath}`;
+    if (rawPath.startsWith('http')) return rawPath;
+
+    const backendUrl = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace('/api', '') 
+      : 'https://s2625-ecobite.onrender.com';
+
+    return `${backendUrl}${rawPath}`;
   };
 
   const handleProductClick = (plato) => {

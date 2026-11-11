@@ -13,8 +13,12 @@ export default function Dashboard() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        // Llamada al endpoint real que subió Brandon a main
-        const response = await fetch("/api/dashboard/stats");
+        
+        // Obtenemos la URL base de la API desde la variable de entorno (Render o local)
+        const apiUrl = import.meta.env.VITE_API_URL || 'https://s2625-ecobite.onrender.com/api';
+        
+        // Realizamos la petición apuntando correctamente a la URL completa del backend
+        const response = await fetch(`${apiUrl}/dashboard/stats`);
         
         if (!response.ok) {
           throw new Error("Error al obtener los datos del servidor");

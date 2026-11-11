@@ -1,9 +1,8 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://s2625-ecobite.onrender.com/api'
 
 /**
- * Cliente HTTP base reutilizable para realizar peticiones fetch
- * @param {string} endpoint - Ejemplo: '/stores', '/products'
- * @param {object} options - Opciones de fetch (method, body, headers, etc.)
+ * @param {string} endpoint 
+ * @param {object} options 
  */
 export async function apiFetch(endpoint, options = {}) {
   const defaultHeaders = {
@@ -11,7 +10,8 @@ export async function apiFetch(endpoint, options = {}) {
     Accept: 'application/json',
   }
 
-  const token = localStorage.getItem('ecobite_token')
+  // Buscamos con ambas claves para evitar problemas de sesión
+  const token = localStorage.getItem('ecobite_token') || localStorage.getItem('token')
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`
   }

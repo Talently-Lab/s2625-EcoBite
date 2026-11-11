@@ -16,12 +16,13 @@ export default function Cart() {
   const PRECIO_UTENSILIOS = 1500
   const PRECIO_ENVIO = 1950
 
-  // Cálculo del subtotal de productos
+  // Cálculo del subtotal de productos robusto y a prueba de errores
   const subtotalProductos = cart ? cart.reduce((acc, item) => {
-    const precioNumerico = typeof item.price === 'number' 
-      ? item.price 
-      : Number(item.price.replace(/[^0-9.-]+/g, ''))
-    return acc + (precioNumerico * item.quantity)
+    const rawPrice = item.price !== undefined ? item.price : (item.precio !== undefined ? item.precio : 0);
+    const precioNumerico = typeof rawPrice === 'number' 
+      ? rawPrice 
+      : Number(String(rawPrice).replace(/[^0-9.-]+/g, '')) || 0;
+    return acc + (precioNumerico * (item.quantity || 1))
   }, 0) : 0
 
   // Extras
@@ -32,10 +33,10 @@ export default function Cart() {
   const totalPedido = subtotalProductos + PRECIO_ENVIO + costoServilletas + costoUtensilios
 
   // Cantidad total de productos
-  const totalProductosCount = cart ? cart.reduce((acc, item) => acc + item.quantity, 0) : 0
+  const totalProductosCount = cart ? cart.reduce((acc, item) => acc + (item.quantity || 1), 0) : 0
 
   const handleCheckout = async () => {
-    let token = localStorage.getItem('token')
+    let token = localStorage.getItem('token') || localStorage.getItem('ecobite_token')
     if (!token) {
       token = 'token_demo_local_123'
       localStorage.setItem('token', token)
@@ -52,7 +53,7 @@ export default function Cart() {
 
       clearCart()
       
-      // Redirigimos a la vista de seguimiento de pedido en lugar de usar alert
+      // Redirigimos a la vista de seguimiento de pedido
       navigate(`/pedidos/${pedidoId}`)
     } catch (error) {
       alert(`No se pudo procesar el pedido: ${error.message}`)
@@ -79,16 +80,22 @@ export default function Cart() {
         {/* Lista de productos en el carrito */}
         <div className="space-y-3">
           {cart && cart.length > 0 ? (
-            cart.map((item) => {
-              // Lógica limpia para resolver la URL de la imagen de forma robusta
+            cart.map((item, index) => {
+              // Obtenemos la URL base del backend desde el entorno y le quitamos el '/api'
+              const backendUrl = import.meta.env.VITE_API_URL 
+                ? import.meta.env.VITE_API_URL.replace('/api', '') 
+                : 'https://s2625-ecobite.onrender.com';
+
               const imgSource = item.imagenUrl || item.imagen || item.img || item.image;
               const finalImgUrl = imgSource 
-                ? (imgSource.startsWith('http') ? imgSource : `http://localhost:3000${imgSource}`)
+                ? (imgSource.startsWith('http') ? imgSource : `${backendUrl}${imgSource}`)
                 : 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60';
+
+              const itemId = item.id || index;
 
               return (
                 <div
-                  key={item.id}
+                  key={itemId}
                   className="bg-white rounded-2xl p-3 border border-gray-100 shadow-2xs flex items-center justify-between gap-3"
                 >
                   <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
@@ -107,14 +114,14 @@ export default function Cart() {
                     {/* Selector de cantidad (- 1 +) */}
                     <div className="flex items-center gap-3 mt-3 bg-gray-50 border border-gray-200 rounded-full px-2 py-1 w-max">
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        onClick={() => updateQuantity(itemId, (item.quantity || 1) - 1)}
                         className="w-5 h-5 flex items-center justify-center text-xs font-bold text-gray-600 hover:text-black cursor-pointer"
                       >
                         –
                       </button>
-                      <span className="text-xs font-bold text-gray-800">{item.quantity}</span>
+                      <span className="text-xs font-bold text-gray-800">{item.quantity || 1}</span>
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        onClick={() => updateQuantity(itemId, (item.quantity || 1) + 1)}
                         className="w-5 h-5 flex items-center justify-center text-xs font-bold text-gray-600 hover:text-black cursor-pointer"
                       >
                         +

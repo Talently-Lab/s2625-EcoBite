@@ -11,6 +11,11 @@ export default function StoreDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // URL base de Render extraída de las variables de entorno
+  const backendUrl = import.meta.env.VITE_API_URL 
+    ? import.meta.env.VITE_API_URL.replace('/api', '') 
+    : 'https://s2625-ecobite.onrender.com'
+
   useEffect(() => {
     async function fetchStoreData() {
       try {
@@ -100,8 +105,19 @@ export default function StoreDetail() {
 
   const storeName = store.name || store.nombre || 'Local sustentable'
   const storeCategory = store.category || store.categoria || ''
-  const storeBanner = store.banner || store.img || store.image || store.imagen || ''
-  const storeLogo = store.logo || ''
+  
+  // Procesamos la imagen del banner/portada para que use Render si es relativa
+  const rawStoreBanner = store.banner || store.img || store.image || store.imagen || ''
+  const storeBanner = rawStoreBanner 
+    ? (rawStoreBanner.startsWith('http') ? rawStoreBanner : `${backendUrl}${rawStoreBanner}`)
+    : ''
+
+  // Procesamos el logo del local de forma similar
+  const rawStoreLogo = store.logo || ''
+  const storeLogo = rawStoreLogo
+    ? (rawStoreLogo.startsWith('http') ? rawStoreLogo : `${backendUrl}${rawStoreLogo}`)
+    : ''
+
   const storeRating = store.rating || store.calificacion || '4.6'
   const storeTime = store.time || store.tiempoEnvio || '20-30 min'
   const storeAddress = store.address || store.direccion || ''
@@ -132,7 +148,7 @@ export default function StoreDetail() {
           )}
           <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent flex items-end p-4">
             <div className="text-white flex items-center gap-3">
-              {storeLogo && typeof storeLogo === 'string' && storeLogo.startsWith('http') ? (
+              {storeLogo ? (
                 <img src={storeLogo} alt="logo" className="w-12 h-12 rounded-full bg-white p-1 object-contain shrink-0" />
               ) : (
                 <div className="w-12 h-12 rounded-full bg-[#3D2314] text-white font-bold text-lg flex items-center justify-center shrink-0">
@@ -170,7 +186,12 @@ export default function StoreDetail() {
                 const prodName = prod.name || prod.nombre || 'Producto'
                 const prodDesc = prod.description || prod.descripcion || ''
                 const prodPrice = prod.price || prod.precio || 0
-                const prodImg = prod.img || prod.image || prod.imagen || prod.urlImagen
+                
+                // Procesamos la imagen de cada plato para que apunte a Render si es ruta relativa
+                const rawProdImg = prod.img || prod.image || prod.imagen || prod.urlImagen
+                const prodImg = rawProdImg
+                  ? (rawProdImg.startsWith('http') ? rawProdImg : `${backendUrl}${rawProdImg}`)
+                  : ''
 
                 return (
                   <div
