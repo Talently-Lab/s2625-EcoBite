@@ -82,6 +82,7 @@ const restaurantes = [
 
 // Direcciones, precios y envases son datos de demostración
 // Cada número identifica permanentemente un plato del catálogo
+
 const platos = [
     {
         numero: 1,
@@ -90,7 +91,7 @@ const platos = [
         descripcion:
             "Falafel sobre una base de quinua, acompañado de ensalada fresca, garbanzos, aceitunas y aderezo tahini",
         archivoImagen: "Box_Saludable_de_Falafel_y_Proteina_Vegetal",
-        precio: "120.00",
+        precio: "19500.00",
         cantidadPlatos: 0,
         cantidadRecipiente: 1,
     },
@@ -101,7 +102,7 @@ const platos = [
         descripcion:
             "Pan artesanal tostado con aguacate sazonado, coronado con un huevo poché y un toque de especias",
         archivoImagen: "Tostada_de_Aguacate_con_Huevo_Poche",
-        precio: "95.00",
+        precio: "9000.00",
         cantidadPlatos: 1,
         cantidadRecipiente: 0,
     },
@@ -112,7 +113,7 @@ const platos = [
         descripcion:
             "Tres empanadas de horno con masa dorada y crujiente, presentadas en una caja individual",
         archivoImagen: "Empanadas_Criollas",
-        precio: "90.00",
+        precio: "9000.00",
         cantidadPlatos: 0,
         cantidadRecipiente: 1,
     },
@@ -123,7 +124,7 @@ const platos = [
         descripcion:
             "Medallón vegetal empanizado y crujiente con ensalada de repollo, tomate y lechuga en pan artesanal",
         archivoImagen: "Hamburguesa_Vegetal_Estilo_Crispy",
-        precio: "115.00",
+        precio: "15500.00",
         cantidadPlatos: 0,
         cantidadRecipiente: 1,
     },
@@ -134,7 +135,7 @@ const platos = [
         descripcion:
             "Cubos de tofu crujientes cubiertos con semillas de sésamo, acompañados de salsa barbacoa agridulce",
         archivoImagen: "Nuggets_de_Tofu_al_Sesamo",
-        precio: "95.00",
+        precio: "11500.00",
         cantidadPlatos: 0,
         cantidadRecipiente: 1,
     },
@@ -145,7 +146,7 @@ const platos = [
         descripcion:
             "Pizza de masa gruesa con queso fundido, finas rodajas de cebolla morada y hierbas aromáticas",
         archivoImagen: "Pizza_de_Cebolla_Morada_y_Queso",
-        precio: "145.00",
+        precio: "23000.00",
         cantidadPlatos: 0,
         cantidadRecipiente: 1,
     },
@@ -156,7 +157,7 @@ const platos = [
         descripcion:
             "Quinua mixta con cubos de calabaza asada, rodajas de aguacate fresco y una mezcla de semillas",
         archivoImagen: "Bowl_de_Quinua_Calabaza_y_Aguacate",
-        precio: "125.00",
+        precio: "21500.00",
         cantidadPlatos: 0,
         cantidadRecipiente: 1,
     },
@@ -167,7 +168,7 @@ const platos = [
         descripcion:
             "Canelones de espinaca y ricota bañados en bechamel, gratinados con queso y terminados con perejil",
         archivoImagen: "Canelones_Rellenos_de_Espinaca_y_Ricota",
-        precio: "135.00",
+        precio: "14000.00",
         cantidadPlatos: 0,
         cantidadRecipiente: 1,
     },
@@ -178,7 +179,7 @@ const platos = [
         descripcion:
             "Arroz cremoso preparado con champiñones salteados, hierbas aromáticas y queso parmesano rallado",
         archivoImagen: "Risotto_de_Champinones",
-        precio: "130.00",
+        precio: "22000.00",
         cantidadPlatos: 0,
         cantidadRecipiente: 1,
     },
@@ -189,7 +190,7 @@ const platos = [
         descripcion:
             "Hamburguesa con queso fundido, tomate y lechuga en pan con ajonjolí, acompañada de papas fritas",
         archivoImagen: "Hamburguesa_Clasica_con_Queso_y_Papas_Fritas",
-        precio: "135.00",
+        precio: "13900.00",
         cantidadPlatos: 0,
         cantidadRecipiente: 2,
     },
@@ -200,7 +201,7 @@ const platos = [
         descripcion:
             "Mezcla de tomates multicolor con hojas verdes y flores comestibles, servida en un plato de cerámica",
         archivoImagen: "Ensalada_Rustica_de_Tomates_Heirloom",
-        precio: "95.00",
+        precio: "15000.00",
         cantidadPlatos: 1,
         cantidadRecipiente: 0,
     },
@@ -211,7 +212,7 @@ const platos = [
         descripcion:
             "Hamburguesa vegetariana crujiente con champiñones salteados, cebolla caramelizada y queso fundido",
         archivoImagen: "Hamburguesa_Gourmet_de_Setas_y_Queso",
-        precio: "125.00",
+        precio: "18500.00",
         cantidadPlatos: 0,
         cantidadRecipiente: 1,
     },
@@ -222,7 +223,7 @@ const platos = [
         descripcion:
             "Aguacate acompañado de espinacas frescas, rábano sandía, tomates cherry y huevos de yema suave",
         archivoImagen: "Bowl_Saludable_Estilo_Keto_con_Huevo_y_Aguacate",
-        precio: "115.00",
+        precio: "16000.00",
         cantidadPlatos: 0,
         cantidadRecipiente: 1,
     },
@@ -233,7 +234,7 @@ const platos = [
         descripcion:
             "Hamburguesa con queso cheddar fundido, pepinillos, cebolla y salsa sobre pan con semillas de sésamo",
         archivoImagen: "Hamburguesa_Doble_Queso_Estilo_Cuarto_de_Libra",
-        precio: "125.00",
+        precio: "16400.00",
         cantidadPlatos: 0,
         cantidadRecipiente: 1,
     },
