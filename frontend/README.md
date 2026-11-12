@@ -1,16 +1,22 @@
-# React + Vite
+# 🌱 EcoBite - Delivery Sustentable (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación web desarrollada para conectar a los usuarios con locales gastronómicos comprometidos con el medio ambiente, fomentando prácticas de cero residuos y opciones de envíos verdes.
 
-Currently, two official plugins are available:
+## 📱 Vista Previa y Mockups
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## React Compiler
+## 🛠️ Tecnologías y Stack Frontend
+- **Framework:** React 18+ (con Vite)
+- **Estilos:** Tailwind CSS
+- **Enrutamiento:** React Router DOM
+- **Control de versiones:** Git / GitHub
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🔗 Enlaces del Proyecto
+- **Sitio en vivo:** (https://s2625-ecobite-frontend-6q5ssx9a8-ecobite.vercel.app/) 
+- **API Backend:** Conectado a la API en la nube (Render)
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 👥 Equipo de Desarrollo
+- **Desarrollador Frontend (React):** Cecilia Pana
+- **Desarrollador Backend (NodeJS):** Brandon Gerardo Chora Alcantara
+- **Diseño Gráfico / UI/UX:** Axel Leonel Vera, Paola Lazos
+- **Marketing & Gestión:** Carolina Vargas, Sabrina Tempo
