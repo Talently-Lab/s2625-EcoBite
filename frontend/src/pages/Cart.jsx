@@ -1,251 +1,165 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useCart } from '../context/CartContext' 
-import { createOrder } from '../services/orders'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 export default function Cart() {
   const navigate = useNavigate()
-  const { cartItems: cart, updateQuantity, removeFromCart, clearCart } = useCart()
+  const location = useLocation()
 
-  const [servilletas, setServilletas] = useState(true)
-  const [utensilios, setUtensilios] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  // Costos de los opcionales
-  const PRECIO_SERVILLETAS = 500
-  const PRECIO_UTENSILIOS = 1500
-  const PRECIO_ENVIO = 1950
-
-  // Cálculo del subtotal de productos robusto y a prueba de errores
-  const subtotalProductos = cart ? cart.reduce((acc, item) => {
-    const rawPrice = item.price !== undefined ? item.price : (item.precio !== undefined ? item.precio : 0);
-    const precioNumerico = typeof rawPrice === 'number' 
-      ? rawPrice 
-      : Number(String(rawPrice).replace(/[^0-9.-]+/g, '')) || 0;
-    return acc + (precioNumerico * (item.quantity || 1))
-  }, 0) : 0
-
-  // Extras
-  const costoServilletas = servilletas ? PRECIO_SERVILLETAS : 0
-  const costoUtensilios = utensilios ? PRECIO_UTENSILIOS : 0
-
-  // Total final
-  const totalPedido = subtotalProductos + PRECIO_ENVIO + costoServilletas + costoUtensilios
-
-  // Cantidad total de productos
-  const totalProductosCount = cart ? cart.reduce((acc, item) => acc + (item.quantity || 1), 0) : 0
-
-  const handleCheckout = async () => {
-    let token = localStorage.getItem('token') || localStorage.getItem('ecobite_token')
-    if (!token) {
-      token = 'token_demo_local_123'
-      localStorage.setItem('token', token)
-    }
-
-    try {
-      setLoading(true)
-      
-      // Llamamos al servicio createOrder y obtenemos la respuesta
-      const respuesta = await createOrder(cart, totalPedido, token)
-      
-      // Extraemos el ID del pedido (compatible con la estructura del backend o mock)
-      const pedidoId = respuesta?.pedido?.id || respuesta?.id || '1'
-
-      clearCart()
-      
-      // Redirigimos a la vista de seguimiento de pedido
-      navigate(`/pedidos/${pedidoId}`)
-    } catch (error) {
-      alert(`No se pudo procesar el pedido: ${error.message}`)
-    } finally {
-      setLoading(false)
-    }
+  // Recogemos el producto real que mandamos desde ProductDetail
+  const producto = location.state?.producto || {
+    nombre: 'Canelones Rellenos de Espinaca y Ricota',
+    precio: 135,
+    imagenUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&auto=format&fit=crop&q=60'
   }
 
+  const [cantidad, setCantidad] = useState(location.state?.cantidad || 1)
+  const [servilletas, setServilletas] = useState(false)
+  const [utensilios, setUtensilios] = useState(false)
+
+  // URL Base de Render para resolver las imágenes relativas del backend
+  const backendUrl = import.meta.env.VITE_API_URL 
+    ? import.meta.env.VITE_API_URL.replace('/api', '') 
+    : 'https://s2625-ecobite.onrender.com'
+
+  const rawImg = producto.imagenUrl || producto.imagen || producto.urlImagen
+  const imgUrl = rawImg 
+    ? (rawImg.startsWith('http') ? rawImg : `${backendUrl}${rawImg}`)
+    : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&auto=format&fit=crop&q=60'
+
+  const precioUnitario = Number(producto.precio || producto.precioCalculado || 135)
+  const costoServilletas = servilletas ? 500 : 0
+  const costoUtensilios = utensilios ? 1500 : 0
+  const costoEnvio = 1950
+
+  const subtotalProductos = precioUnitario * cantidad
+  const totalGeneral = subtotalProductos + costoServilletas + costoUtensilios + costoEnvio
+
   return (
-    <div className="min-h-screen bg-[#FAFAF7] text-gray-800 font-sans pb-28">
-      {/* Header superior discreto */}
-      <header className="bg-[#FAFAF7] border-b border-gray-100 p-4 max-w-md mx-auto flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="text-gray-700 text-sm flex items-center gap-1 cursor-pointer">
-          ← Volver
+    <div className="min-h-screen bg-[#FAFAF7] text-[#3D2314] font-sans pb-28">
+      {/* Header */}
+      <header className="p-4 flex items-center justify-between bg-[#FAFAF7] sticky top-0 z-20 border-b border-gray-100">
+        <button 
+          onClick={() => navigate(-1)}
+          className="w-9 h-9 flex items-center justify-center bg-white border border-gray-200 rounded-full hover:bg-gray-50 shadow-2xs transition cursor-pointer text-sm font-bold"
+        >
+          ←
         </button>
-        <h1 className="font-bold text-sm text-[#3A2E2B]">Tu pedido</h1>
-        <span className="text-xs text-gray-500 font-medium">
-          {totalProductosCount} {totalProductosCount === 1 ? 'producto' : 'productos'}
-        </span>
+        <span className="font-bold text-sm text-[#3D2314]">EcoBite</span>
+        <div className="w-9"></div>
       </header>
 
-      <main className="max-w-md mx-auto p-4 space-y-5">
+      {/* Contenido */}
+      <main className="max-w-md mx-auto px-4 py-4 space-y-6">
         
-        {/* Lista de productos en el carrito */}
+        {/* Tu pedido */}
         <div className="space-y-3">
-          {cart && cart.length > 0 ? (
-            cart.map((item, index) => {
-              // Obtenemos la URL base del backend desde el entorno y le quitamos el '/api'
-              const backendUrl = import.meta.env.VITE_API_URL 
-                ? import.meta.env.VITE_API_URL.replace('/api', '') 
-                : 'https://s2625-ecobite.onrender.com';
+          <div className="flex justify-between items-center">
+            <h2 className="font-bold text-sm text-[#3D2314]">Tu pedido</h2>
+            <span className="text-xs text-gray-400 font-medium">{cantidad} producto</span>
+          </div>
 
-              const imgSource = item.imagenUrl || item.imagen || item.img || item.image;
-              const finalImgUrl = imgSource 
-                ? (imgSource.startsWith('http') ? imgSource : `${backendUrl}${imgSource}`)
-                : 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60';
-
-              const itemId = item.id || index;
-
-              return (
-                <div
-                  key={itemId}
-                  className="bg-white rounded-2xl p-3 border border-gray-100 shadow-2xs flex items-center justify-between gap-3"
-                >
-                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                    <img
-                      src={finalImgUrl}
-                      alt={item.name || item.nombre}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-xs sm:text-sm text-gray-900 leading-tight">
-                      {item.name || item.nombre}
-                    </h3>
-                    
-                    {/* Selector de cantidad (- 1 +) */}
-                    <div className="flex items-center gap-3 mt-3 bg-gray-50 border border-gray-200 rounded-full px-2 py-1 w-max">
-                      <button
-                        onClick={() => updateQuantity(itemId, (item.quantity || 1) - 1)}
-                        className="w-5 h-5 flex items-center justify-center text-xs font-bold text-gray-600 hover:text-black cursor-pointer"
-                      >
-                        –
-                      </button>
-                      <span className="text-xs font-bold text-gray-800">{item.quantity || 1}</span>
-                      <button
-                        onClick={() => updateQuantity(itemId, (item.quantity || 1) + 1)}
-                        className="w-5 h-5 flex items-center justify-center text-xs font-bold text-gray-600 hover:text-black cursor-pointer"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
+          <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-2xs flex items-center gap-3">
+            <img 
+              src={imgUrl} 
+              alt={producto.nombre || producto.name} 
+              className="w-16 h-16 rounded-xl object-cover"
+              onError={(e) => {
+                e.target.src = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&auto=format&fit=crop&q=60'
+              }}
+            />
+            <div className="flex-1">
+              <h3 className="font-bold text-xs text-gray-900">{producto.nombre || producto.name}</h3>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-2 py-0.5 bg-gray-50">
+                  <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} className="text-gray-500 font-bold text-xs cursor-pointer">-</button>
+                  <span className="text-xs font-bold w-3 text-center">{cantidad}</span>
+                  <button onClick={() => setCantidad(cantidad + 1)} className="text-gray-500 font-bold text-xs cursor-pointer">+</button>
                 </div>
-              )
-            })
-          ) : (
-            <div className="bg-white rounded-2xl p-8 text-center border border-gray-100 shadow-2xs space-y-3">
-              <span className="text-3xl">🛒</span>
-              <p className="text-xs text-gray-500 font-medium">Tu carrito está vacío</p>
-              <Link
-                to="/"
-                className="inline-block px-4 py-2 bg-[#3D2314] text-white text-xs font-medium rounded-full"
-              >
-                Explorar el menú
-              </Link>
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Utensilios y servilletas biodegradables */}
-        <section className="space-y-3 pt-2">
-          <div>
-            <h2 className="font-bold text-sm text-[#2D2320]">Utensilios y servilletas biodegradables</h2>
-            <p className="text-[11px] text-gray-400 mt-0.5">Pedilos solo si realmente los necesitas.</p>
-          </div>
-
-          <div className="space-y-2 bg-white rounded-2xl p-3 border border-gray-100">
-            {/* Opción Servilletas */}
-            <label className="flex items-center justify-between cursor-pointer py-1">
+        <div className="space-y-2">
+          <h3 className="font-bold text-xs text-[#3D2314]">Utensilios y servilletas biodegradables</h3>
+          <p className="text-[11px] text-gray-400">Pedilos solo si realmente los necesitás.</p>
+          
+          <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-2xs space-y-3">
+            <label className="flex items-center justify-between cursor-pointer">
               <div className="flex items-center gap-2.5">
-                <input
-                  type="checkbox"
+                <input 
+                  type="checkbox" 
                   checked={servilletas}
-                  onChange={(e) => setServilletas(e.target.checked)}
-                  className="w-4 h-4 accent-[#3D2314] rounded cursor-pointer"
+                  onChange={() => setServilletas(!servilletas)}
+                  className="accent-[#3D2314] w-4 h-4 rounded cursor-pointer"
                 />
-                <span className="text-xs text-gray-700">Servilletas de papel</span>
+                <span className="text-xs text-gray-800 font-medium">Servilletas de papel</span>
               </div>
-              <span className="text-xs font-semibold text-gray-800">${PRECIO_SERVILLETAS}</span>
+              <span className="text-xs font-semibold text-gray-600">$500</span>
             </label>
 
-            <hr className="border-gray-50" />
-
-            {/* Opción Utensilios */}
-            <label className="flex items-center justify-between cursor-pointer py-1">
+            <label className="flex items-center justify-between cursor-pointer pt-2 border-t border-gray-50">
               <div className="flex items-center gap-2.5">
-                <input
-                  type="checkbox"
+                <input 
+                  type="checkbox" 
                   checked={utensilios}
-                  onChange={(e) => setUtensilios(e.target.checked)}
-                  className="w-4 h-4 accent-[#3D2314] rounded cursor-pointer"
+                  onChange={() => setUtensilios(!utensilios)}
+                  className="accent-[#3D2314] w-4 h-4 rounded cursor-pointer"
                 />
-                <span className="text-xs text-gray-700">Utensilios (tenedor + cuchillo)</span>
+                <span className="text-xs text-gray-800 font-medium">Utensilios (tenedor + cuchillo)</span>
               </div>
-              <span className="text-xs font-semibold text-gray-800">${PRECIO_UTENSILIOS}</span>
+              <span className="text-xs font-semibold text-gray-600">$1500</span>
             </label>
-          </div>
-        </section>
-
-        {/* Tarjeta de Impacto Ecológico (Huella de CO2) */}
-        <div className="bg-[#F5EFE6] border border-[#E8DFC8] rounded-2xl p-3.5 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#3D2314]/10 flex items-center justify-center shrink-0">
-            <span className="text-lg">🍃</span>
-          </div>
-          <div>
-            <h4 className="font-bold text-xs text-[#3D2314]">3.4 kg CO₂</h4>
-            <p className="text-[10px] text-[#6B5A4B] leading-tight mt-0.5">
-              Al elegir nuestra app, ayudás a mantener el aire de tu ciudad más limpio.
-            </p>
           </div>
         </div>
 
-        {/* Resumen de Costos */}
-        <section className="space-y-2 pt-2">
-          <h2 className="font-bold text-sm text-[#2D2320]">Resumen</h2>
-
-          <div className="bg-white rounded-2xl p-3.5 border border-gray-100 space-y-2 text-xs text-gray-600">
-            <div className="flex justify-between">
-              <span>Producto</span>
-              <span className="font-semibold text-gray-800">${subtotalProductos.toLocaleString()}</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span>Envío</span>
-              <span className="font-semibold text-gray-800">${PRECIO_ENVIO.toLocaleString()}</span>
-            </div>
-
-            {servilletas && (
-              <div className="flex justify-between">
-                <span>Servilletas</span>
-                <span className="font-semibold text-gray-800">${PRECIO_SERVILLETAS}</span>
-              </div>
-            )}
-
-            {utensilios && (
-              <div className="flex justify-between">
-                <span>Utensilios</span>
-                <span className="font-semibold text-gray-800">${PRECIO_UTENSILIOS}</span>
-              </div>
-            )}
+        {/* Badge CO2 */}
+        <div className="bg-[#F8F5F0] border border-[#EBE3D5] p-3.5 rounded-2xl flex items-center gap-3">
+          <span className="text-xl">🍃</span>
+          <div>
+            <p className="text-xs font-bold text-[#3D2314]">3.4 kg CO₂</p>
+            <p className="text-[10px] text-gray-600 leading-tight">Al elegir nuestra app, ayudás a mantener el aire de tu ciudad más limpio.</p>
           </div>
-        </section>
+        </div>
+
+        {/* Resumen */}
+        <div className="space-y-2 bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs">
+          <h3 className="font-bold text-xs text-[#3D2314] mb-2">Resumen</h3>
+          <div className="flex justify-between text-xs text-gray-600">
+            <span>Producto</span>
+            <span>${subtotalProductos}</span>
+          </div>
+          {(servilletas || utensilios) && (
+            <div className="flex justify-between text-xs text-gray-600">
+              <span>Eco-extras</span>
+              <span>${costoServilletas + costoUtensilios}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-xs text-gray-600 pb-2 border-b border-gray-100">
+            <span>Envío</span>
+            <span>${costoEnvio}</span>
+          </div>
+          <div className="flex justify-between text-sm font-black text-[#3D2314] pt-1">
+            <span>Total</span>
+            <span>${totalGeneral}</span>
+          </div>
+        </div>
 
       </main>
 
-      {/* Botón inferior fijo para Confirmar Pedido */}
-      {cart && cart.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 p-4 z-30">
-          <div className="max-w-md mx-auto">
-            <button
-              onClick={handleCheckout}
-              disabled={loading}
-              className="w-full py-3.5 bg-[#3D2314] hover:bg-[#2A180D] text-white font-semibold rounded-2xl shadow-md transition flex items-center justify-between px-6 cursor-pointer disabled:opacity-50"
-            >
-              <span>{loading ? 'Procesando...' : 'Confirmar pedido'}</span>
-              <span className="text-base">${totalPedido.toLocaleString()}</span>
-            </button>
-          </div>
+      {/* Botón Inferior */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-100 z-30">
+        <div className="max-w-md mx-auto">
+          <button 
+            onClick={() => navigate('/checkout/process', { state: { total: totalGeneral, producto, cantidad } })}
+            className="w-full py-3.5 bg-[#3D2314] hover:bg-[#2A180D] text-white text-xs font-bold rounded-2xl transition shadow-md flex items-center justify-between px-6 cursor-pointer"
+          >
+            <span>Confirmar pedido</span>
+            <span>${totalGeneral}</span>
+          </button>
         </div>
-      )}
+      </div>
     </div>
   )
 }

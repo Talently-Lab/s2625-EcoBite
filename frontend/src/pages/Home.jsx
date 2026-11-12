@@ -21,29 +21,36 @@ export default function Home() {
   const banners = [banner1, banner2, banner3, banner4]
   const [currentBanner, setCurrentBanner] = useState(0)
 
-  const categories = ['Todos', 'Vegano', 'Vegetariano', 'Cero residuos', 'Envío verde']
+  const categories = ['Todos', 'Comida rápida', 'Saludable', 'Vegetariano', 'Cero residuos', 'Envío verde']
 
-  // Función robusta para resolver la URL de la imagen usando la nube de Render
   const resolveImageUrl = (item) => {
-    const rawPath = item?.imagenUrl || item?.imagen || item?.urlImagen || item?.img || item?.image;
+    const rawPath = item?.imagenUrl || item?.imagen || item?.urlImagen || item?.img || item?.image
     if (!rawPath) {
-      return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60';
+      return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60'
     }
-    if (rawPath.startsWith('http')) return rawPath;
+    if (rawPath.startsWith('http')) return rawPath
 
     const backendUrl = import.meta.env.VITE_API_URL 
       ? import.meta.env.VITE_API_URL.replace('/api', '') 
-      : 'https://s2625-ecobite.onrender.com';
+      : 'https://s2625-ecobite.onrender.com'
 
-    return `${backendUrl}${rawPath}`;
-  };
+    return `${backendUrl}${rawPath}`
+  }
 
-  const handleProductClick = (plato) => {
-    const prodId = plato.id || plato._id;
+  const handleProductClick = (item, isStore = false) => {
+    const prodId = item.id || item._id
+    const restId = isStore ? null : (item.restauranteId || null)
+
     if (prodId) {
-      navigate(`/product/${prodId}`);
+      navigate(`/product/${prodId}`, { 
+        state: { 
+          producto: item,
+          restauranteId: restId,
+          esRestaurante: isStore
+        } 
+      })
     }
-  };
+  }
 
   useEffect(() => {
     async function fetchHomeData() {
@@ -51,11 +58,9 @@ export default function Home() {
         setLoading(true)
         setError(null)
 
-        // 1. Cargamos los locales reales de la API
         const listaLocales = await restaurantesService.getAllStores()
         setLocales(listaLocales || [])
 
-        // 2. Cargamos los platos recorriendo los locales con getStoreProducts
         let todosLosPlatos = []
         if (listaLocales && listaLocales.length > 0) {
           for (const store of listaLocales) {
@@ -63,18 +68,21 @@ export default function Home() {
             try {
               const platosLocal = await restaurantesService.getStoreProducts(storeId)
               if (Array.isArray(platosLocal)) {
-                const platosConLocal = platosLocal.map(p => ({ ...p, restauranteNombre: store.name || store.nombre }))
+                const platosConLocal = platosLocal.map(p => ({ 
+                  ...p, 
+                  restauranteId: storeId,
+                  restauranteNombre: store.nombre || store.name 
+                }))
                 todosLosPlatos = [...todosLosPlatos, ...platosConLocal]
               }
-            } catch (err) {
-              console.warn(`No se pudieron cargar platos para el local ${storeId}`, err)
+            } catch {
+              // Silenciado para producción
             }
           }
         }
         setPlatos(todosLosPlatos)
 
-      } catch (err) {
-        console.error('Error al conectar con el backend:', err)
+      } catch {
         setError('Error de conexión con el servidor.')
         setPlatos([])
         setLocales([])
@@ -94,18 +102,26 @@ export default function Home() {
   }, [banners.length])
 
   const filteredLocales = locales.filter((store) => {
-    if (!store) return false;
-    const storeName = store.name || store.nombre || '';
-    const storeCategory = store.category || store.categoria || '';
+    if (!store) return false
+    const storeName = store.nombre || store.name || ''
+    const storeCategory = store.categoriaComida || store.category || store.categoria || ''
     
     const matchesSearch = storeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           storeCategory.toLowerCase().includes(searchTerm.toLowerCase())
     
     let matchesCategory = true
     if (selectedCategory !== 'Todos') {
-      const catList = store.categories || store.categorias || []
-      matchesCategory = catList.some(c => c && c.toLowerCase() === selectedCategory.toLowerCase()) ||
-                        storeCategory.toLowerCase().includes(selectedCategory.toLowerCase())
+      if (selectedCategory === 'Cero residuos') {
+        matchesCategory = Boolean(store.ceroResiduos)
+      } else if (selectedCategory === 'Envío verde') {
+        matchesCategory = Boolean(store.envioVerde)
+      } else if (selectedCategory === 'Comida rápida') {
+        matchesCategory = storeCategory === 'comida_rapida'
+      } else if (selectedCategory === 'Saludable') {
+        matchesCategory = storeCategory === 'comida_saludable'
+      } else if (selectedCategory === 'Vegetariano') {
+        matchesCategory = storeCategory === 'vegetariano' || storeCategory === 'vegano'
+      }
     }
 
     return matchesSearch && matchesCategory
@@ -116,7 +132,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#FAFAF7] text-gray-800 font-sans pb-16">
       
-      {/* Header Superior */}
       <header className="bg-[#FAFAF7] border-b border-gray-100 sticky top-0 z-20 shadow-2xs">
         <div className="max-w-md md:max-w-4xl lg:max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -132,10 +147,8 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Contenedor Principal */}
       <main className="max-w-md md:max-w-4xl lg:max-w-6xl mx-auto px-4 py-4 space-y-6">
         
-        {/* Buscador general */}
         <div className="relative max-w-2xl mx-auto">
           <input
             type="text"
@@ -147,7 +160,6 @@ export default function Home() {
           <span className="absolute left-3.5 top-3.5 text-gray-400 text-xs sm:text-sm">🔍</span>
         </div>
 
-        {/* Botones de Categoría */}
         <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 text-xs sm:justify-center">
           {categories.map((cat) => {
             const isActive = selectedCategory === cat
@@ -168,8 +180,11 @@ export default function Home() {
         </div>
 
         {loading && (
-          <div className="text-center py-4 text-xs text-gray-500 font-medium animate-pulse">
-            Cargando recomendaciones...
+          <div className="flex flex-col items-center justify-center py-12 space-y-3">
+            <div className="w-8 h-8 border-4 border-[#B58252] border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-xs text-gray-600 font-medium animate-pulse">
+              Cargando restaurantes y platillos...
+            </p>
           </div>
         )}
 
@@ -179,14 +194,13 @@ export default function Home() {
           </div>
         )}
 
-        {!isFiltering ? (
+        {!loading && !isFiltering && (
           <>
-            {/* Banner Promocional */}
             <div className="relative rounded-2xl overflow-hidden shadow-sm bg-gray-100 w-full flex items-center">
               <img 
                 src={banners[currentBanner]} 
                 alt={`Banner promocional ${currentBanner + 1}`} 
-                className="w-full h-auto block object-contain transform-gpu backface-hidden [image-rendering:-webkit-optimize-contrast]"
+                className="w-full h-auto block object-contain"
               />
               
               <button 
@@ -216,7 +230,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Locales sustentables */}
             <section className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="font-bold text-sm sm:text-base text-[#2D2320]">Locales sustentables</h2>
@@ -230,46 +243,40 @@ export default function Home() {
                   locales.map((store) => (
                     <div
                       key={store.id || store._id}
-                      onClick={() => navigate(`/store/${store.id || store._id}`)}
+                      onClick={() => handleProductClick(store, true)}
                       className="w-44 sm:w-auto shrink-0 bg-white rounded-2xl p-2.5 border border-gray-100 shadow-2xs cursor-pointer space-y-2 hover:shadow-md transition"
                     >
                       <div className="relative h-28 sm:h-32 rounded-xl overflow-hidden bg-gray-100">
                         <img 
                           src={resolveImageUrl(store)} 
-                          alt={store.name || store.nombre} 
+                          alt={store.nombre || store.name} 
                           className="w-full h-full object-cover" 
                         />
                         <div className="absolute top-2 right-2 bg-indigo-900/80 backdrop-blur-xs text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                           <span>🍃</span>
-                          <span>{store.ecoScore || store.puntuacionEco || 95}</span>
+                          <span>{store.calificacionPromedio || 4.7}</span>
                         </div>
                       </div>
                       
                       <div className="space-y-0.5 px-1">
                         <div className="flex items-center gap-1.5">
                           <span className="w-4 h-4 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center shrink-0">
-                            {(store.name || store.nombre)?.charAt(0) || 'E'}
+                            {(store.nombre || store.name)?.charAt(0) || 'E'}
                           </span>
                           <h3 className="font-bold text-xs sm:text-sm text-gray-800 truncate">
-                            {store.name || store.nombre}
+                            {store.nombre || store.name}
                           </h3>
                         </div>
-                        <p className="text-[10px] sm:text-xs text-gray-400 truncate">{store.category || store.categoria}</p>
-                        <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-500 pt-1">
-                          <span className="text-amber-500 font-bold">★ {store.rating || store.calificacion || '4.6'}</span>
-                          <span>•</span>
-                          <span>{store.time || store.tiempoEnvio || '20-30 min'}</span>
-                        </div>
+                        <p className="text-[10px] sm:text-xs text-gray-400 truncate">{store.categoriaComida}</p>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-gray-400 col-span-full py-4">No hay locales disponibles.</p>
+                  <p className="text-xs text-gray-400 col-span-full py-4">No hay restaurantes disponibles.</p>
                 )}
               </div>
             </section>
 
-            {/* Los más pedidos */}
             <section className="space-y-3">
               <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                 <h2 className="font-bold text-sm sm:text-base text-[#2D2320]">Los más pedidos</h2>
@@ -283,38 +290,35 @@ export default function Home() {
                   platos.map((plato) => (
                     <div
                       key={plato.id || plato._id}
-                      onClick={() => handleProductClick(plato)}
+                      onClick={() => handleProductClick(plato, false)}
                       className="w-44 sm:w-auto shrink-0 bg-white rounded-2xl p-2.5 border border-gray-100 shadow-2xs cursor-pointer space-y-2 hover:shadow-md transition flex flex-col justify-between"
                     >
                       <div>
                         <div className="h-28 sm:h-32 rounded-xl overflow-hidden bg-gray-100 mb-2">
                           <img 
                             src={resolveImageUrl(plato)} 
-                            alt={plato.name || plato.nombre} 
+                            alt={plato.nombre || plato.name} 
                             className="w-full h-full object-cover" 
                           />
                         </div>
                         <h3 className="font-semibold text-xs sm:text-sm text-gray-800 line-clamp-2 leading-tight">
-                          {plato.name || plato.nombre}
+                          {plato.nombre || plato.name}
                         </h3>
                       </div>
 
                       <div className="space-y-1 pt-1">
                         <span className="text-xs sm:text-sm font-bold text-gray-900">
-                          {typeof (plato.price || plato.precio) === 'number' 
-                            ? `$${plato.price || plato.precio}` 
-                            : (plato.price || plato.precio || '$0')}
+                          ${plato.precio}
                         </span>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-gray-400 col-span-full py-4">No hay productos disponibles en la API.</p>
+                  <p className="text-xs text-gray-400 col-span-full py-4">No hay platillos disponibles.</p>
                 )}
               </div>
             </section>
 
-            {/* Para vos */}
             <section className="space-y-4 pt-2">
               <h2 className="font-bold text-lg text-[#3A2E2B]">Para vos</h2>
               
@@ -328,20 +332,21 @@ export default function Home() {
                       <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-gray-100 shrink-0">
                         <img 
                           src={resolveImageUrl(plato)} 
-                          alt={plato.name || plato.nombre} 
+                          alt={plato.nombre || plato.name} 
                           className="w-full h-full object-cover" 
                         />
                       </div>
 
                       <div className="flex-1 space-y-1">
                         <h3 className="font-bold text-xs sm:text-sm text-gray-900 leading-snug">
-                          {plato.name || plato.nombre}
+                          {plato.nombre || plato.name}
                         </h3>
-                        <p className="text-xs text-gray-500">{plato.restauranteNombre || plato.store || plato.restaurante || ''}</p>
+                        <p className="text-xs text-gray-500">{plato.restauranteNombre || ''}</p>
+                        <span className="text-xs font-bold text-emerald-800">${plato.precio}</span>
                       </div>
 
                       <button
-                        onClick={() => handleProductClick(plato)}
+                        onClick={() => handleProductClick(plato, false)}
                         className="px-4 py-2.5 bg-[#3D2314] hover:bg-[#2A180D] text-white text-xs font-medium rounded-full transition flex items-center gap-1 shrink-0 cursor-pointer"
                       >
                         Ver detalle →
@@ -349,12 +354,14 @@ export default function Home() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-gray-400 py-4">No hay sugerencias disponibles en la API.</p>
+                  <p className="text-xs text-gray-400 py-4">No hay sugerencias disponibles.</p>
                 )}
               </div>
             </section>
           </>
-        ) : (
+        )}
+
+        {!loading && isFiltering && (
           <section className="space-y-4 pt-2">
             <h2 className="font-bold text-base text-[#2D2320]">
               {filteredLocales.length} recomendaciones para vos
@@ -365,20 +372,21 @@ export default function Home() {
                 filteredLocales.map((store) => (
                   <div
                     key={store.id || store._id}
-                    onClick={() => navigate(`/store/${store.id || store._id}`)}
+                    onClick={() => handleProductClick(store, true)}
                     className="bg-white rounded-2xl p-3 border border-gray-100 shadow-2xs cursor-pointer space-y-2 hover:shadow-md transition flex flex-col justify-between"
                   >
                     <div>
                       <div className="h-32 sm:h-36 rounded-xl overflow-hidden bg-gray-100 mb-2 relative">
                         <img 
                           src={resolveImageUrl(store)} 
-                          alt={store.name || store.nombre} 
+                          alt={store.nombre || store.name} 
                           className="w-full h-full object-cover" 
                         />
                       </div>
                       <h3 className="font-bold text-xs sm:text-sm text-gray-900 leading-tight truncate">
-                        {store.name || store.nombre}
+                        {store.nombre || store.name}
                       </h3>
+                      <p className="text-[10px] text-gray-400 truncate mt-0.5">{store.categoriaComida}</p>
                     </div>
                   </div>
                 ))

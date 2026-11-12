@@ -1,269 +1,150 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { useCart } from '../context/CartContext'
-import { restaurantesService } from '../services/restaurantesService'
+import React, { useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 export default function ProductDetail() {
   const navigate = useNavigate()
-  const { id } = useParams()
-  const { addToCart } = useCart()
+  const location = useLocation()
 
-  // Estados para los datos reales del producto
-  const [producto, setProducto] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  // Tomamos el producto directamente del state de la navegación
+  const producto = location.state?.producto || {
+    nombre: 'Canelones Rellenos de Espinaca y Ricota',
+    descripcion: 'Canelones de espinaca y ricota bañados en bechamel, gratinados con queso y terminados con perejil.',
+    precio: 135,
+    imagen: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&auto=format&fit=crop&q=60'
+  }
 
-  // Estados de personalización
-  const [selectedMedallon, setSelectedMedallon] = useState('falafel')
-  const [selectedPan, setSelectedPan] = useState('clasico')
-  const [quantity, setQuantity] = useState(1)
+  // Estados para personalización y cantidad
+  const [cantidad, setCantidad] = useState(1)
+  const [adicionalSeleccionado, setAdicionalSeleccionado] = useState(300) // por defecto salsa si está marcada
 
-  // URL base de Render extraída de las variables de entorno
   const backendUrl = import.meta.env.VITE_API_URL 
     ? import.meta.env.VITE_API_URL.replace('/api', '') 
     : 'https://s2625-ecobite.onrender.com'
 
-  const opcionesMedallon = [
-    { id: 'falafel', nombre: 'Medallón de Falafel', extra: 0 },
-    { id: 'girgolas', nombre: 'Medallón de Gírgolas y Porotos Negros', extra: 1200 },
-    { id: 'quinoa', nombre: 'Medallón de Quinoa y Calabaza', extra: 1400 },
-  ]
-
-  const opcionesPan = [
-    { id: 'clasico', nombre: 'Pan Clásico', extra: 0 },
-  ]
-
-  // Cargar el producto real desde el backend con respaldo de emergencia para la demo
-  useEffect(() => {
-    async function fetchProductDetail() {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        let prodData = null
-
-        try {
-          const data = await restaurantesService.getProductById ? 
-                       await restaurantesService.getProductById(id) : 
-                       await restaurantesService.getStoreProducts(id)
-
-          prodData = data?.data || data
-          if (Array.isArray(prodData)) {
-            prodData = prodData.find(p => (p.id || p._id) === id) || prodData[0]
-          }
-        } catch (e) {
-          console.warn('No se pudo obtener el producto exacto por ID, usando respaldo.', e)
-        }
-
-        // Si la API no lo encuentra (404), usamos un respaldo garantizado para la demo
-        if (!prodData) {
-          prodData = {
-            id: id || 'demo-prod',
-            name: 'Bowl Sustentable de la Casa',
-            description: 'Elaborado con ingredientes orgánicos, locales y de estación.',
-            price: 4500,
-            img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&auto=format&fit=crop&q=60'
-          }
-        }
-
-        setProducto(prodData)
-      } catch (err) {
-        console.error('Error al cargar el detalle del producto:', err)
-        setError('No se pudo cargar el producto desde el servidor.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (id) {
-      fetchProductDetail()
-    }
-  }, [id])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#FAFAF7] flex items-center justify-center text-xs text-gray-500 font-medium">
-        Cargando detalle del producto...
-      </div>
-    )
-  }
-
-  if (error || !producto) {
-    return (
-      <div className="min-h-screen bg-[#FAFAF7] flex flex-col items-center justify-center p-4 text-center space-y-3">
-        <p className="text-xs text-amber-800">{error || 'Producto no encontrado.'}</p>
-        <button onClick={() => navigate(-1)} className="px-4 py-2 bg-[#3D2314] text-white text-xs rounded-xl cursor-pointer">
-          Volver
-        </button>
-      </div>
-    )
-  }
-
-  // Precios y cálculos
-  const precioBase = Number(producto.precio || producto.price || 0)
-  const extraMedallon = opcionesMedallon.find(m => m.id === selectedMedallon)?.extra || 0
-  const extraPan = opcionesPan.find(p => p.id === selectedPan)?.extra || 0
-  const precioUnitario = precioBase + extraMedallon + extraPan
-  const precioTotal = precioUnitario * quantity
-
-  // Procesamiento robusto de la imagen del producto (Render o Unsplash)
-  const rawImg = producto.imagen || producto.img || producto.image || producto.urlImagen || ''
-  const imagenReal = rawImg 
+  const rawImg = producto.imagenUrl || producto.imagen || producto.urlImagen
+  const imgUrl = rawImg 
     ? (rawImg.startsWith('http') ? rawImg : `${backendUrl}${rawImg}`)
-    : 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60'
+    : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&auto=format&fit=crop&q=60'
 
-  const handleAgregar = () => {
-    const productoParaAgregar = {
-      id: producto.id || producto._id || id,
-      nombre: producto.nombre || producto.name,
-      precio: precioUnitario,
-      quantity: quantity,
-      opciones: {
-        medallon: opcionesMedallon.find(m => m.id === selectedMedallon)?.nombre,
-        pan: opcionesPan.find(p => p.id === selectedPan)?.nombre,
-      },
-      imagen: imagenReal
-    }
-
-    if (addToCart) {
-      addToCart(productoParaAgregar)
-    }
-    navigate('/cart')
-  }
+  const nombreProd = producto.nombre || producto.name || 'Detalle'
+  const descProd = producto.descripcion || producto.description || 'Elaborado con ingredientes orgánicos, locales y de estación.'
+  
+  const precioBase = Number(producto.precio || producto.price || 135)
+  const precioTotal = (precioBase + adicionalSeleccionado) * cantidad
 
   return (
-    <div className="min-h-screen bg-[#FAFAF7] text-[#3D2314] font-sans pb-28">
-      
-      {/* Botón Volver */}
-      <div className="relative">
+    <div className="min-h-screen bg-[#FAFAF7] text-[#3D2314] font-sans pb-24">
+      {/* Header con botón Volver */}
+      <header className="p-4 flex items-center bg-[#FAFAF7] sticky top-0 z-20">
         <button 
-          onClick={() => navigate(-1)} 
-          className="absolute top-4 left-4 z-10 w-9 h-9 bg-white/80 backdrop-blur-xs rounded-full flex items-center justify-center text-sm font-bold shadow-sm hover:bg-white transition cursor-pointer"
+          onClick={() => navigate(-1)}
+          className="w-9 h-9 flex items-center justify-center bg-white border border-gray-200 rounded-full hover:bg-gray-50 shadow-2xs transition cursor-pointer text-sm font-bold"
         >
           ←
         </button>
+      </header>
 
-        {/* Imagen del plato */}
-        <div className="w-full h-72 sm:h-80 bg-white overflow-hidden flex items-center justify-center p-4">
-          {imagenReal ? (
-            <img 
-              src={imagenReal} 
-              alt={producto.nombre || producto.name} 
-              className="w-full h-full object-contain max-w-sm"
-            />
-          ) : (
-            <div className="text-xs text-gray-400">Sin imagen disponible</div>
-          )}
-        </div>
-      </div>
-
-      <main className="max-w-md mx-auto px-4 py-4 space-y-6">
+      {/* Contenido principal del Detalle */}
+      <main className="max-w-md mx-auto px-4 space-y-6">
         
-        {/* Título y Precio */}
-        <div className="flex items-start justify-between gap-4 border-b border-gray-100 pb-4">
-          <h1 className="font-bold text-lg sm:text-xl text-[#3D2314] leading-tight">
-            {producto.nombre || producto.name}
-          </h1>
-          <span className="font-bold text-base sm:text-lg text-[#3D2314] shrink-0">
-            ${precioBase.toLocaleString()}
-          </span>
+        {/* Imagen destacada */}
+        <div className="w-full h-72 rounded-3xl overflow-hidden bg-white shadow-xs border border-gray-100">
+          <img src={imgUrl} alt={nombreProd} className="w-full h-full object-cover" />
         </div>
 
-        {/* Descripción */}
-        <div className="space-y-1.5 border-b border-gray-100 pb-4">
-          <h2 className="font-bold text-sm text-[#3D2314]">Descripción</h2>
-          <p className="text-xs text-gray-500 leading-relaxed">
-            {producto.descripcion || producto.description || 'Sin descripción disponible.'}
+        {/* Título y Precio */}
+        <div className="flex justify-between items-start">
+          <h1 className="text-xl font-black text-[#2D2320] leading-tight max-w-[70%]">{nombreProd}</h1>
+          <span className="text-xl font-black text-[#2D2320]">${precioBase}</span>
+        </div>
+
+        {/* Sección Descripción */}
+        <div className="space-y-1.5">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">Descripción</h2>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            {descProd}
           </p>
         </div>
 
+        {/* Impacto ecológico */}
+        <div className="p-3 bg-[#E8F3ED] border border-emerald-200 rounded-2xl space-y-1 text-xs text-emerald-800">
+          <span className="font-bold">🌱 Impacto Ecológico:</span>
+          <p>Incluye recipiente reutilizable (1) y cubierto (1).</p>
+        </div>
+
         {/* Sección Personalizá */}
-        <div className="space-y-5">
-          <h2 className="font-bold text-sm text-[#3D2314] uppercase tracking-wide">Personalizá</h2>
+        <div className="space-y-4 pt-2 border-t border-gray-100">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">Personalizá</h2>
 
-          {/* Opción Medallones */}
           <div className="space-y-2">
-            <h3 className="text-xs font-bold text-[#8C6D58] uppercase tracking-wider">MEDALLONES</h3>
-            <div className="space-y-1">
-              {opcionesMedallon.map((opcion) => (
-                <label 
-                  key={opcion.id}
-                  onClick={() => setSelectedMedallon(opcion.id)}
-                  className="flex items-center justify-between py-2 border-b border-gray-100 cursor-pointer text-xs"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selectedMedallon === opcion.id ? 'border-[#3D2314]' : 'border-gray-300'}`}>
-                      {selectedMedallon === opcion.id && <div className="w-2 h-2 rounded-full bg-[#3D2314]" />}
-                    </div>
-                    <span className="text-gray-700">{opcion.nombre}</span>
+            <h3 className="text-[11px] font-bold text-gray-700 uppercase">Opciones adicionales</h3>
+            <div className="space-y-2 bg-white p-3 rounded-2xl border border-gray-100 shadow-2xs">
+              {[
+                { label: 'Salsa especial artesanal', extra: 300 },
+                { label: 'Bebida mediana', extra: 800 },
+              ].map((opt, idx) => (
+                <label key={idx} className="flex items-center justify-between cursor-pointer py-1">
+                  <div className="flex items-center gap-2.5">
+                    <input 
+                      type="checkbox" 
+                      checked={adicionalSeleccionado === opt.extra}
+                      onChange={() => setAdicionalSeleccionado(adicionalSeleccionado === opt.extra ? 0 : opt.extra)}
+                      className="accent-[#3D2314] w-4 h-4 cursor-pointer" 
+                    />
+                    <span className="text-xs text-gray-800 font-medium">{opt.label}</span>
                   </div>
-                  <span className="font-medium text-gray-600">${opcion.extra}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Opción Pan */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold text-[#8C6D58] uppercase tracking-wider">PAN</h3>
-            <div className="space-y-1">
-              {opcionesPan.map((opcion) => (
-                <label 
-                  key={opcion.id}
-                  onClick={() => setSelectedPan(opcion.id)}
-                  className="flex items-center justify-between py-2 border-b border-gray-100 cursor-pointer text-xs"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selectedPan === opcion.id ? 'border-[#3D2314]' : 'border-gray-300'}`}>
-                      {selectedPan === opcion.id && <div className="w-2 h-2 rounded-full bg-[#3D2314]" />}
-                    </div>
-                    <span className="text-gray-700">{opcion.nombre}</span>
-                  </div>
-                  <span className="font-medium text-gray-600">${opcion.extra}</span>
+                  <span className="text-xs font-semibold text-gray-600">+${opt.extra}</span>
                 </label>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Contador y Subtotal */}
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-3 py-1.5 shadow-2xs">
+        {/* Selector de Cantidad y Total */}
+        <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-gray-100 shadow-2xs">
+          <div className="flex items-center gap-3 border border-gray-200 rounded-xl px-3 py-1.5 bg-gray-50">
             <button 
-              onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-              className="w-6 h-6 flex items-center justify-center text-sm font-bold text-gray-600 hover:text-black cursor-pointer"
+              onClick={() => setCantidad(Math.max(1, cantidad - 1))}
+              className="text-gray-500 font-bold px-1 hover:text-black cursor-pointer"
             >
-              –
+              -
             </button>
-            <span className="text-xs font-bold text-gray-800">{quantity}</span>
+            <span className="text-xs font-bold w-4 text-center">{cantidad}</span>
             <button 
-              onClick={() => setQuantity(prev => prev + 1)}
-              className="w-6 h-6 flex items-center justify-center text-sm font-bold text-gray-600 hover:text-black cursor-pointer"
+              onClick={() => setCantidad(cantidad + 1)}
+              className="text-gray-500 font-bold px-1 hover:text-black cursor-pointer"
             >
               +
             </button>
           </div>
-
-          <div className="text-right">
-            <span className="text-xs font-bold text-[#3D2314]">Total: ${precioTotal.toLocaleString()}</span>
-          </div>
+          <span className="text-xs font-bold text-gray-800">Total: ${precioTotal}</span>
         </div>
 
       </main>
 
-      {/* Botón Agregar Fijo Inferior */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 p-4 z-30">
+      {/* Botón flotante inferior */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-100 z-30">
         <div className="max-w-md mx-auto">
-          <button
-            onClick={handleAgregar}
-            className="w-full py-3.5 bg-[#3D2314] hover:bg-[#2A180D] text-white font-semibold rounded-2xl shadow-md transition flex items-center justify-between px-6 cursor-pointer"
+          <button 
+            onClick={() => {
+              // Navegamos al carrito enviando el objeto de este producto real y la cantidad
+              navigate('/cart', { 
+                state: { 
+                  producto: {
+                    ...producto,
+                    precioCalculado: precioTotal
+                  },
+                  cantidad: cantidad 
+                } 
+              })
+            }}
+            className="w-full py-3.5 bg-[#3D2314] hover:bg-[#2A180D] text-white text-xs font-bold rounded-2xl transition shadow-md flex items-center justify-between px-6 cursor-pointer"
           >
             <span>Agregar</span>
-            <span className="text-base">${precioTotal.toLocaleString()}</span>
+            <span>${precioTotal}</span>
           </button>
         </div>
       </div>
-
     </div>
   )
 }
