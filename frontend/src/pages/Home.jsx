@@ -135,9 +135,7 @@ export default function Home() {
       <header className="bg-[#FAFAF7] border-b border-gray-100 sticky top-0 z-20 shadow-2xs">
         <div className="max-w-md md:max-w-4xl lg:max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button className="md:hidden text-xl text-gray-700 hover:bg-gray-100 p-1.5 rounded-lg transition cursor-pointer">
-              ☰
-            </button>
+            
             <span className="font-bold text-xl text-[#3A2E2B] tracking-tight">EcoBite</span>
           </div>
           <div className="flex items-center gap-3 text-gray-700">

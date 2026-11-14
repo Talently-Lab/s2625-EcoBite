@@ -27,7 +27,6 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-[#FAFAF7] text-[#3D2314] font-sans pb-16">
-      {/* Resto del código de Profile.jsx */}
       <header className="bg-[#FAFAF7] border-b border-gray-100 p-4 max-w-md mx-auto flex items-center justify-between">
         <button onClick={() => navigate(-1)} className="text-gray-700 text-sm flex items-center gap-1 cursor-pointer">
           ← Volver
@@ -75,7 +74,7 @@ export default function Profile() {
                 onClick={() => navigate('/product/104')}
                 className="px-3.5 py-1.5 bg-[#3D2314] hover:bg-[#2A180D] text-white text-[11px] font-medium rounded-xl transition flex items-center gap-1 cursor-pointer"
               >
-                Pedir ahora &rarr;
+                Pedir ahora →
               </button>
             </div>
           </div>
@@ -106,6 +105,20 @@ export default function Profile() {
             </div>
           </div>
         </section>
+
+     {/* Sección de Ayuda y soporte */}
+        <div className="bg-white border border-[#EBE3D5] rounded-2xl p-4 flex items-center justify-between shadow-2xs hover:bg-[#FAF8F5] transition cursor-pointer">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#FAF8F5] border border-[#EBE3D5] flex items-center justify-center text-[#3D2314]">
+              {/* Icono de interrogación / ayuda */}
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <span className="text-xs font-bold text-[#3D2314]">Ayuda y soporte</span>
+          </div>
+          <span className="text-[#3D2314] font-bold">→</span>
+        </div>
 
         {/* Botón Cerrar Sesión */}
         <div className="pt-2 text-center">

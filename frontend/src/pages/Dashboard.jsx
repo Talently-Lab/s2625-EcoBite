@@ -144,6 +144,19 @@ export default function Dashboard() {
           </table>
         </div>
       </div>
+
+      {/* Sección de Ayuda y soporte */}
+      <div className="mt-8 bg-white border border-[#EBE3D5] rounded-2xl p-4 flex items-center justify-between shadow-xs hover:bg-[#FAF8F5] transition cursor-pointer">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-[#FAF8F5] border border-[#EBE3D5] flex items-center justify-center text-[#3D2314]">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+            </svg>
+          </div>
+          <span className="text-xs font-bold text-[#3D2314]">Ayuda y soporte</span>
+        </div>
+        <span className="text-[#3D2314] font-bold">→</span>
+      </div>
     </div>
   );
 }

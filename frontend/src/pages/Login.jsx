@@ -24,14 +24,10 @@ export default function Login() {
 
     setSubmitting(true)
     try {
-      // 1. login() devuelve 'data', donde viene 'user' o 'usuario'
       const data = await login(email, password)
       const userData = data?.user || data?.usuario || JSON.parse(localStorage.getItem('ecobite_user') || '{}')
-
-      // 2. Leemos el rol (contemplando posibles nombres desde el backend)
       const userRole = userData?.rol || userData?.role || userData?.tipo
 
-      // 3. Redirigimos según corresponda (normalizamos a minúsculas por seguridad)
       if (userRole?.toLowerCase() === 'admin' || userRole?.toLowerCase() === 'administrador') {
         navigate('/dashboard')
       } else {
@@ -131,11 +127,18 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="text-center pt-1">
+        {/* Enlaces inferiores de registro */}
+        <div className="space-y-2 pt-1 text-center">
           <p className="text-xs text-gray-500">
             ¿No estás registrado?{' '}
             <Link to="/register" className="font-bold text-[#3D2314] hover:underline">
               Crea tu cuenta
+            </Link>
+          </p>
+          <p className="text-[11px] text-gray-500">
+            ¿Tenés un local gastronómico?{' '}
+            <Link to="/register/store-basic" className="font-bold text-[#9E5B32] hover:underline">
+              Registrá tu restaurante
             </Link>
           </p>
         </div>
