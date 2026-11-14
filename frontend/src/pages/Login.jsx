@@ -24,9 +24,19 @@ export default function Login() {
 
     setSubmitting(true)
     try {
-      // Usamos la función login del AuthContext que ya maneja apiFetch correctamente
-      await login(email, password)
-      navigate('/')
+      // 1. login() devuelve 'data', donde viene 'user' o 'usuario'
+      const data = await login(email, password)
+      const userData = data?.user || data?.usuario || JSON.parse(localStorage.getItem('ecobite_user') || '{}')
+
+      // 2. Leemos el rol (contemplando posibles nombres desde el backend)
+      const userRole = userData?.rol || userData?.role || userData?.tipo
+
+      // 3. Redirigimos según corresponda (normalizamos a minúsculas por seguridad)
+      if (userRole?.toLowerCase() === 'admin' || userRole?.toLowerCase() === 'administrador') {
+        navigate('/dashboard')
+      } else {
+        navigate('/')
+      }
     } catch (err) {
       setError(true)
       setErrorMessage(err.message || 'Credenciales incorrectas')
@@ -66,6 +76,7 @@ export default function Login() {
             <label className="text-[11px] font-semibold text-gray-700">Email</label>
             <input
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value)
@@ -84,6 +95,7 @@ export default function Login() {
             <label className="text-[11px] font-semibold text-gray-700">Contraseña</label>
             <input
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value)
