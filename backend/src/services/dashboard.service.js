@@ -3,12 +3,25 @@ const dashboardRepository = require("../repositories/dashboard.repository");
 const { calcularImpactoHistorico } = require("../utils/impactoDashboard");
 const prisma = require("../config/prisma");
 const { calcularDesgloseDiario } = require("../utils/desgloseDashboard");
+const { obtenerPeriodoDashboard } = require("../utils/periodoDashboard");
 
 const DIAS_RESUMEN = 7;
 const MILISEGUNDOS_POR_DIA = 24 * 60 * 60 * 1000;
 const SEMANAS_GRAFICO = 8;
 const HORAS_ABANDONO = 1;
 const MILISEGUNDOS_POR_HORA = 60 * 60 * 1000;
+
+// Convierte valores decimales para la respuesta sin transformar null en cero
+const numeroONull = (valor) =>
+    valor == null ? null : Number(valor);
+
+// Conserva los contadores y convierte únicamente los importes del impacto
+const convertirImpactoANumeros = (impacto) => ({
+    ...impacto,
+    ahorroEnvasesKg: numeroONull(impacto.ahorroEnvasesKg),
+    ahorroTransporteKg: numeroONull(impacto.ahorroTransporteKg),
+    ahorroTotalKg: numeroONull(impacto.ahorroTotalKg),
+});
 
 // consulta ventas e impacto sobre el mismo conjunto de datos
 const consultarEstadisticas = async (db) => {
@@ -114,20 +127,24 @@ const resumirTransportes = (envios) => {
     };
 };
 
-// Construye ocho períodos semanales desde el más antiguo al más reciente
-const resumirPedidosPorSemana = (pedidos, hasta) => {
+// Construye períodos consecutivos y mantiene el actual igual al resumen
+const resumirPedidosPorSemana = (pedidos, desde, hasta) => {
     const duracionSemana = DIAS_RESUMEN * MILISEGUNDOS_POR_DIA;
-    const fin = hasta.getTime(); // Convierte la fecha a milisegundos para calcular los límites
+    const inicioActual = desde.getTime();
 
     return Array.from({ length: SEMANAS_GRAFICO }, (_, indice) => {
         const semanasAtras = SEMANAS_GRAFICO - 1 - indice;
-        const finSemana = fin - semanasAtras * duracionSemana;
-        const inicioSemana = finSemana - duracionSemana;
+        const inicioSemana = inicioActual - semanasAtras * duracionSemana;
+
+        // El período actual termina ahora; los anteriores son completos
+        const finSemana = semanasAtras === 0
+            ? hasta.getTime()
+            : inicioSemana + duracionSemana;
 
         const cantidad = pedidos.filter((pedido) => {
             const fecha = pedido.fecha.getTime();
             return fecha >= inicioSemana && fecha < finSemana;
-        }).length; // Cuenta solo los pedidos dentro de este período
+        }).length;
 
         return {
             semanasAtras,
@@ -135,20 +152,21 @@ const resumirPedidosPorSemana = (pedidos, hasta) => {
             hasta: new Date(finSemana).toISOString(),
             pedidosEntregados: cantidad,
         };
-    }); // Genera las ocho semanas, incluidas las que no tienen pedidos
+    });
 };
 
 // Consulta ventas e impacto usando el mismo período
-const consultarResumenSemanal = async (desde, hasta, db) => {
+const consultarResumenSemanal = async (periodo, db) => {
+    const { desde, hasta, dias, zonaHoraria } = periodo;
     const resumen = await dashboardRepository.obtenerResumenVentasPeriodo(desde,hasta,db);
     const pedidos = await dashboardRepository.obtenerPedidosParaImpactoPeriodo(desde,hasta,db);
     const gruposRestaurantes = await dashboardRepository.contarRestaurantesPorEstado(db);
     const envios = await dashboardRepository.obtenerTransportesPeriodo(desde, hasta, db);
 
     const desdeGrafico = new Date(
-        hasta.getTime() -
-        SEMANAS_GRAFICO * DIAS_RESUMEN * MILISEGUNDOS_POR_DIA
-    ); // Calcula el inicio de los últimos 56 días
+        desde.getTime() -
+        (SEMANAS_GRAFICO - 1) * DIAS_RESUMEN * MILISEGUNDOS_POR_DIA
+    ); // Incluye siete períodos anteriores al período actual
 
     const fechasPedidos = await dashboardRepository.obtenerFechasPedidosPeriodo(desdeGrafico, hasta, db);
     const pedidosDiarios =  await dashboardRepository.obtenerPedidosParaDesgloseDiario(desde, hasta, db);
@@ -167,20 +185,31 @@ const consultarResumenSemanal = async (desde, hasta, db) => {
         alcance: "ultimos_7_dias",
         estadoPedido: "entregado",
         periodo: {
-            desde: desde.toISOString(), // Devuelve la fecha en UTC con formato ISO
+            desde: desde.toISOString(),
             hasta: hasta.toISOString(),
             campoFecha: "fecha",
+            zonaHoraria,
         },
         pedidosEntregados: resumen._count.id,
-        ventasTotales: resumen._sum.montoTotal?.toFixed(2) ?? "0.00",
-        ticketPromedio: resumen._avg.montoTotal?.toFixed(2) ?? null,
-        ticketMinimo: resumen._min.montoTotal?.toFixed(2) ?? null,
-        ticketMaximo: resumen._max.montoTotal?.toFixed(2) ?? null,
-        impacto: calcularImpactoHistorico(pedidos),
+        ventasTotales: numeroONull(resumen._sum.montoTotal?.toFixed(2)) ?? 0,
+        ticketPromedio: numeroONull(resumen._avg.montoTotal?.toFixed(2)),
+        ticketMinimo: numeroONull(resumen._min.montoTotal?.toFixed(2)),
+        ticketMaximo: numeroONull(resumen._max.montoTotal?.toFixed(2)),
+        impacto: convertirImpactoANumeros(calcularImpactoHistorico(pedidos)),
         restaurantes: resumirRestaurantes(gruposRestaurantes),
         transportes: resumirTransportes(envios),
-        pedidosPorSemana: resumirPedidosPorSemana(fechasPedidos, hasta),
-        desgloseDiario: calcularDesgloseDiario(pedidosDiarios, envios),
+        pedidosPorSemana: resumirPedidosPorSemana(fechasPedidos, desde, hasta),
+        desgloseDiario: calcularDesgloseDiario(
+            pedidosDiarios,
+            envios,
+            dias
+        ).map((dia) => ({
+            ...dia,
+            ventasTotales: numeroONull(dia.ventasTotales),
+            ticketPromedio: numeroONull(dia.ticketPromedio),
+            ticketMinimo: numeroONull(dia.ticketMinimo),
+            ticketMaximo: numeroONull(dia.ticketMaximo),
+        })),
         abandono: {
             estadoPedido: "pendiente",
             umbralHoras: HORAS_ABANDONO,
@@ -198,18 +227,20 @@ const consultarResumenSemanal = async (desde, hasta, db) => {
     };
 };
 
-// Autoriza al administrador y establece una ventana de siete días
+// Autoriza al administrador y consulta siete fechas argentinas
 const obtenerResumenSemanal = async (usuarioActual) => {
     if (!usuarioActual || usuarioActual.nombreRol !== "admin") {
-        throw new AppError("Solo los administradores pueden consultar las estadísticas",403);
+        throw new AppError(
+            "Solo los administradores pueden consultar las estadísticas",
+            403
+        );
     }
 
-    const hasta = new Date();
-    const desde = new Date( hasta.getTime() - DIAS_RESUMEN * MILISEGUNDOS_POR_DIA); // Resta siete días exactos al instante de consulta
+    const periodo = obtenerPeriodoDashboard();
 
     return prisma.$transaction(
-        (tx) => consultarResumenSemanal(desde, hasta, tx),
-        { isolationLevel: "RepeatableRead" } // Mantiene la misma versión de los datos durante las consultas
+        (tx) => consultarResumenSemanal(periodo, tx),
+        { isolationLevel: "RepeatableRead" }
     );
 };
 

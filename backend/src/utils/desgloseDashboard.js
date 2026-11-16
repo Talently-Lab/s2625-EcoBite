@@ -22,7 +22,7 @@ const formatearCentavos = (centavos) => {
 };
 
 // Agrupa pedidos y transportes por su fecha local de creación
-const calcularDesgloseDiario = (pedidos, envios) => {
+const calcularDesgloseDiario = (pedidos, envios, diasPeriodo) => {
     const dias = new Map(); // Guarda un grupo por cada fecha
 
     const obtenerGrupo = (fecha) => {
@@ -44,6 +44,11 @@ const calcularDesgloseDiario = (pedidos, envios) => {
 
         return dias.get(dia);
     };
+
+    // Crea los siete grupos, aunque no existan pedidos ni envíos
+    for (const dia of diasPeriodo) {
+        obtenerGrupo(new Date(`${dia}T00:00:00.000-03:00`));
+    }
 
     for (const pedido of pedidos) {
         const grupo = obtenerGrupo(pedido.fecha);
