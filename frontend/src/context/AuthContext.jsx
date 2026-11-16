@@ -21,18 +21,30 @@ export const AuthProvider = ({ children }) => {
   }, [token])
 
   const login = async (email, password) => {
-    // Usamos apiFetch apuntando a /auth/login (apiFetch ya incluye el /api inicial)
+    // Enviamos ambas variantes (password y contrasena) para asegurar compatibilidad con el backend
     const data = await apiFetch('/auth/login', {
       method: 'POST',
-      body: { email, contrasena: password }
+      body: { 
+        email, 
+        password: password, 
+        contrasena: password 
+      }
     })
 
-    const userData = data.user || data.usuario
-    
+    const authToken = data.token || data.accessToken || data.access_token
+    const userData = data.user || data.usuario || data.data
+
+    if (!authToken) {
+      throw new Error(data.message || 'Credenciales incorrectas o token no recibido')
+    }
+
     setUser(userData)
-    setToken(data.token)
-    localStorage.setItem('ecobite_token', data.token)
-    localStorage.setItem('ecobite_user', JSON.stringify(userData))
+    setToken(authToken)
+    localStorage.setItem('ecobite_token', authToken)
+    localStorage.setItem('token', authToken) // Por si algún componente usa 'token'
+    if (userData) {
+      localStorage.setItem('ecobite_user', JSON.stringify(userData))
+    }
 
     return data
   }
@@ -48,21 +60,24 @@ export const AuthProvider = ({ children }) => {
       password = nombreArg.contrasena || nombreArg.password || passwordArg
     }
 
-    // Usamos apiFetch apuntando a /usuarios/registrar sin duplicar el /api
     const data = await apiFetch('/usuarios/registrar', {
       method: 'POST',
       body: { 
         nombre, 
         email, 
-        contrasena: password
+        password: password,
+        contrasena: password 
       }
     })
 
-    if (data.token && (data.user || data.usuario)) {
-      const userData = data.user || data.usuario
+    const authToken = data.token || data.accessToken || data.access_token
+    const userData = data.user || data.usuario || data.data
+
+    if (authToken && userData) {
       setUser(userData)
-      setToken(data.token)
-      localStorage.setItem('ecobite_token', data.token)
+      setToken(authToken)
+      localStorage.setItem('ecobite_token', authToken)
+      localStorage.setItem('token', authToken)
       localStorage.setItem('ecobite_user', JSON.stringify(userData))
     }
 
@@ -73,6 +88,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null)
     setToken(null)
     localStorage.removeItem('ecobite_token')
+    localStorage.removeItem('token')
     localStorage.removeItem('ecobite_user')
   }
 
