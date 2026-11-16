@@ -7,7 +7,8 @@ function getSessionId() {
   return id
 }
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const apiUrl = rawUrl.endsWith('/api') ? rawUrl.slice(0, -4) : rawUrl
 
 export function trackEvent(nombre_evento, rol_usuario, propiedades = {}) {
   const body = JSON.stringify({
