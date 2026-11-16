@@ -37,16 +37,20 @@ export default function Home() {
     return `${backendUrl}${rawPath}`
   }
 
+  // Corrección clave: Manejo separado para locales (StoreDetail) y platos (ProductDetail)
   const handleProductClick = (item, isStore = false) => {
-    const prodId = item.id || item._id
-    const restId = isStore ? null : (item.restauranteId || null)
+    const id = item.id || item._id
 
-    if (prodId) {
-      navigate(`/product/${prodId}`, { 
+    if (!id) return
+
+    if (isStore) {
+      navigate(`/store/${id}`)
+    } else {
+      navigate(`/product/${id}`, { 
         state: { 
           producto: item,
-          restauranteId: restId,
-          esRestaurante: isStore
+          restauranteId: item.restauranteId || null,
+          esRestaurante: false
         } 
       })
     }
@@ -135,7 +139,6 @@ export default function Home() {
       <header className="bg-[#FAFAF7] border-b border-gray-100 sticky top-0 z-20 shadow-2xs">
         <div className="max-w-md md:max-w-4xl lg:max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            
             <span className="font-bold text-xl text-[#3A2E2B] tracking-tight">EcoBite</span>
           </div>
           <div className="flex items-center gap-3 text-gray-700">

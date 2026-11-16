@@ -38,11 +38,7 @@ export default function Register() {
     setSubmitting(true)
     try {
       await register({ nombre, email, contrasena })
-      
-      // NOTA: Borramos el trackEvent de 'click_boton_crear_cuenta' 
-      // porque la documentación indica que lo genera el backend automáticamente.
-
-      navigate('/login') // O a donde corresponda (el registro no devuelve token según la doc)
+      navigate('/login') 
     } catch (err) {
       setError(true)
       setErrorMessage(err.message || 'Datos no válidos. Volvé a intentarlo.')
@@ -52,8 +48,10 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-[#333333]/60 backdrop-blur-xs flex items-center justify-center p-4 font-sans">
-      <div className="w-full max-w-md bg-white rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+    /* Cambiamos items-center por items-end en mobile y quitamos padding exterior inicial */
+    <div className="min-h-screen bg-[#333333]/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 font-sans">
+      {/* Ajustamos los bordes a rounded-t-3xl sm:rounded-3xl para el efecto bottom sheet */}
+      <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
         
         <h2 className="text-center font-bold text-base sm:text-lg text-[#3A2E2B]">
           Conéctate a EcoBite
@@ -68,7 +66,7 @@ export default function Register() {
               value={nombre}
               onChange={(e) => { setNombre(e.target.value); if (error) setError(false); }}
               placeholder="Ingresá tu nombre completo"
-              className="w-full px-3.5 py-2.5 text-xs rounded-xl border bg-gray-50 border-gray-200"
+              className="w-full px-3.5 py-2.5 text-xs rounded-xl border bg-gray-50 border-gray-200 focus:outline-none focus:border-[#B58252]"
             />
           </div>
 
@@ -81,7 +79,7 @@ export default function Register() {
               onFocus={handleEmailFocus}
               onChange={(e) => { setEmail(e.target.value); if (error) setError(false); }}
               placeholder="Ingresá tu email"
-              className="w-full px-3.5 py-2.5 text-xs rounded-xl border bg-gray-50 border-gray-200"
+              className="w-full px-3.5 py-2.5 text-xs rounded-xl border bg-gray-50 border-gray-200 focus:outline-none focus:border-[#B58252]"
             />
           </div>
 
@@ -93,7 +91,7 @@ export default function Register() {
               value={contrasena}
               onChange={(e) => { setContrasena(e.target.value); if (error) setError(false); }}
               placeholder="Ingresá tu contraseña"
-              className="w-full px-3.5 py-2.5 text-xs rounded-xl border bg-gray-50 border-gray-200"
+              className="w-full px-3.5 py-2.5 text-xs rounded-xl border bg-gray-50 border-gray-200 focus:outline-none focus:border-[#B58252]"
             />
           </div>
 
@@ -112,7 +110,7 @@ export default function Register() {
           </button>
         </form>
 
-        <div className="text-center pt-1">
+        <div className="text-center pt-1 pb-4 sm:pb-0">
           <p className="text-xs text-gray-500">
             ¿Ya tenés cuenta? <Link to="/login" className="font-bold text-[#3D2314] hover:underline">Iniciá sesión</Link>
           </p>

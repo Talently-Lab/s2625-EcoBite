@@ -18,24 +18,30 @@ export function CartProvider({ children }) {
     localStorage.setItem('ecobite_cart', JSON.stringify(cartItems))
   }, [cartItems])
 
-  // 1. Agregar producto al carrito
+  // 1. Agregar producto al carrito (Normalizando id y _id)
   const addToCart = (product, quantity = 1) => {
+    const productId = product.id || product._id
+    
     setCartItems((prevItems) => {
-      const existingIndex = prevItems.findIndex((item) => item.id === product.id)
+      const existingIndex = prevItems.findIndex((item) => (item.id || item._id) === productId)
+      
       if (existingIndex > -1) {
         const updated = [...prevItems]
         updated[existingIndex].quantity += quantity
         return updated
       }
-      return [...prevItems, { ...product, quantity }]
+      
+      // Aseguramos que el ítem guardado tenga un 'id' estándar unificado
+      return [...prevItems, { ...product, id: productId, quantity }]
     })
   }
 
-  // 2. Eliminar o decrementar producto
+  // 2. Eliminar producto
   const removeFromCart = (productId) => {
-    setCartItems((prevItems) => prevItems.filter((item) => item.id !== productId))
+    setCartItems((prevItems) => prevItems.filter((item) => (item.id || item._id) !== productId))
   }
 
+  // 3. Actualizar cantidad
   const updateQuantity = (productId, newQuantity) => {
     if (newQuantity <= 0) {
       removeFromCart(productId)
@@ -43,19 +49,19 @@ export function CartProvider({ children }) {
     }
     setCartItems((prevItems) =>
       prevItems.map((item) =>
-        item.id === productId ? { ...item, quantity: newQuantity } : item
+        (item.id || item._id) === productId ? { ...item, quantity: newQuantity } : item
       )
     )
   }
 
-  // 3. Vaciar carrito
+  // 4. Vaciar carrito
   const clearCart = () => {
     setCartItems([])
     localStorage.removeItem('ecobite_cart')
   }
 
-  // 4. Cálculos automáticos de totales
-  const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0)
+  // 5. Cálculos automáticos de totales
+  const subtotal = cartItems.reduce((acc, item) => acc + (Number(item.price || item.precio || 0) * item.quantity), 0)
   const totalItemsCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
 
   return (

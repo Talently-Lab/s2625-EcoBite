@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import Home from "./pages/Home";
+import Catalog from "./pages/Catalog"; // <-- 1. Importa el catálogo aquí
 import StoreDetail from "./pages/StoreDetail";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -22,8 +23,8 @@ export default function App() {
       <CartProvider>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/catalog" element={<Home />} />{" "}
-          {/* <-- Añadida para evitar el error en blanco */}
+          <Route path="/catalog" element={<Catalog />} /> {/* <-- 2. Usa Catalog aquí */}
+          <Route path="/stores" element={<Catalog />} />  {/* <-- 3. Y aquí para que "Ver todo" funcione */}
           <Route path="/store/:id" element={<StoreDetail />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
@@ -35,18 +36,9 @@ export default function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/checkout/process" element={<CheckoutProcess />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
-          <Route
-            path="/register/store-basic"
-            element={<RegistrarRestaurante />}
-          />
-          <Route
-            path="/register/store-details"
-            element={<RegistrarRestaurante />}
-          />
-          <Route
-            path="/register/store-validation"
-            element={<RegistrarRestaurante />}
-          />
+          <Route path="/register/store-basic" element={<RegistrarRestaurante />} />
+          <Route path="/register/store-details" element={<RegistrarRestaurante />} />
+          <Route path="/register/store-validation" element={<RegistrarRestaurante />} />
           <Route path="/register/success" element={<RegistrarRestaurante />} />
         </Routes>
       </CartProvider>

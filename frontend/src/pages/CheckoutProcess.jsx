@@ -8,19 +8,73 @@ export default function CheckoutProcess() {
 
   const [paso, setPaso] = useState(1) // 1: Verificando, 2: Procesando, 3: Confirmando
 
+  const backendUrl = import.meta.env.VITE_API_URL 
+    ? import.meta.env.VITE_API_URL.replace('/api', '') 
+    : 'https://s2625-ecobite.onrender.com'
+
   useEffect(() => {
-    const timer1 = setTimeout(() => setPaso(2), 3000)
-    const timer2 = setTimeout(() => setPaso(3), 6000)
-    const timer3 = setTimeout(() => {
-      navigate('/checkout/success', { state: data })
+    let isMounted = true
+
+    const timer1 = setTimeout(() => {
+      if (isMounted) setPaso(2)
+    }, 3000)
+
+    const timer2 = setTimeout(() => {
+      if (isMounted) setPaso(3)
+    }, 6000)
+
+    // Al llegar al último paso, enviamos el pedido con el token real de sesión
+    const timer3 = setTimeout(async () => {
+      try {
+        const payloadPedido = {
+          items: data.items || data.carrito || [],
+          total: data.total || data.subtotal || 0,
+          direccion: data.direccion || 'Dirección predeterminada',
+          metodoPago: data.metodoPago || 'Efectivo / Tarjeta'
+        }
+
+        // Priorizamos 'ecobite_token' que contiene el JWT válido del backend
+        const token = localStorage.getItem('ecobite_token') || localStorage.getItem('token') || ''
+
+        const response = await fetch(`${backendUrl}/api/pedidos`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(payloadPedido)
+        })
+
+        let resultado = null
+        if (response.ok) {
+          resultado = await response.json().catch(() => null)
+        } else {
+          console.error('Error en el servidor al registrar el pedido:', response.status)
+        }
+
+        if (isMounted) {
+          navigate('/checkout/success', { 
+            state: { 
+              ...data, 
+              pedidoCreado: resultado 
+            } 
+          })
+        }
+      } catch (err) {
+        console.error('Error de red al registrar el pedido:', err)
+        if (isMounted) {
+          navigate('/checkout/success', { state: data })
+        }
+      }
     }, 9000)
 
     return () => {
+      isMounted = false
       clearTimeout(timer1)
       clearTimeout(timer2)
       clearTimeout(timer3)
     }
-  }, [navigate, data])
+  }, [navigate, data, backendUrl])
 
   const porcentaje = paso === 1 ? 33 : paso === 2 ? 66 : 100
 
@@ -71,7 +125,7 @@ export default function CheckoutProcess() {
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className={paso >= 3 ? 'font-bold text-[#3D2314]' : 'text-gray-400'}>Confirmando pedido</span>
-              <span className="text-[10px] text-gray-400"></span>
+              <span className="text-[10px] text-gray-400">{paso === 3 ? 'Registrando...' : ''}</span>
             </div>
           </div>
         </div>

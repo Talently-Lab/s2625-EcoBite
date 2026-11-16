@@ -42,7 +42,8 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-[#333333]/60 backdrop-blur-xs flex items-center justify-center p-4 font-sans">    
+    /* Cambiamos items-center por items-end en mobile para que el modal arranque desde abajo */
+    <div className="min-h-screen bg-[#333333]/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 font-sans">    
       <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 space-y-5 shadow-xl animate-in slide-in-from-bottom duration-300">
         
         <h2 className="text-center font-bold text-base sm:text-lg text-[#3A2E2B]">
@@ -128,7 +129,7 @@ export default function Login() {
         </form>
 
         {/* Enlaces inferiores de registro */}
-        <div className="space-y-2 pt-1 text-center">
+        <div className="space-y-2 pt-1 text-center pb-4 sm:pb-0">
           <p className="text-xs text-gray-500">
             ¿No estás registrado?{' '}
             <Link to="/register" className="font-bold text-[#3D2314] hover:underline">
