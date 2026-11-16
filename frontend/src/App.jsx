@@ -3,7 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import Home from "./pages/Home";
-import Catalog from "./pages/Catalog"; // <-- 1. Importa el catálogo aquí
+import Catalog from "./pages/Catalog";
 import StoreDetail from "./pages/StoreDetail";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -22,9 +22,14 @@ export default function App() {
     <AuthProvider>
       <CartProvider>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/catalog" element={<Catalog />} /> {/* <-- 2. Usa Catalog aquí */}
-          <Route path="/stores" element={<Catalog />} />  {/* <-- 3. Y aquí para que "Ver todo" funcione */}
+          {/* La Landing Page es ahora la primera pantalla en la raíz (/) */}
+          <Route path="/" element={<Landing />} />
+          
+          {/* El Home principal queda disponible en /home */}
+          <Route path="/home" element={<Home />} />
+          
+          <Route path="/catalog" element={<Catalog />} />
+          <Route path="/stores" element={<Catalog />} />
           <Route path="/store/:id" element={<StoreDetail />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
