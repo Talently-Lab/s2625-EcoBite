@@ -25,13 +25,13 @@ export default function Login() {
     setSubmitting(true)
     try {
       const data = await login(email, password)
-      const userData = data?.user || data?.usuario || JSON.parse(localStorage.getItem('ecobite_user') || '{}')
-      const userRole = userData?.rol || userData?.role || userData?.tipo
+      const userData = data.usuario
+      const userRole = userData?.tipoUsuario?.nombreRol
 
-      if (userRole?.toLowerCase() === 'admin' || userRole?.toLowerCase() === 'administrador') {
-        navigate('/dashboard')
+      if (userRole === 'admin') {
+        navigate('/admin/dashboard', { replace: true })
       } else {
-        navigate('/')
+        navigate('/home', { replace: true })
       }
     } catch (err) {
       setError(true)
