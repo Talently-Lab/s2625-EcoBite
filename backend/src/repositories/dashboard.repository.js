@@ -188,6 +188,35 @@ const obtenerConteosAbandono = async (desde, hasta, limiteAbandono, db = prisma)
     return { pedidosCreados, pedidosAbandonados };
 };
 
+// Obtiene los 10 pedidos más recientes para el panel admin
+const obtenerUltimosPedidos = (db = prisma) => {
+    return db.pedido.findMany({
+        take: 10,
+        orderBy: [
+            { fecha: "desc" },
+            { id: "desc" },
+        ],
+        select: {
+            id: true,
+            fecha: true,
+            estado: true,
+            montoTotal: true,
+            usuario: {
+                select: { nombre: true },
+            },
+            items: {
+                select: {
+                    cantidad: true,
+                    plato: {
+                        select: { nombre: true },
+                    },
+                },
+            },
+        },
+    });
+};
+
+
 module.exports = {
     obtenerResumenVentas,
     obtenerPedidosParaImpacto,
@@ -198,4 +227,5 @@ module.exports = {
     obtenerFechasPedidosPeriodo,
     obtenerPedidosParaDesgloseDiario,
     obtenerConteosAbandono,
+    obtenerUltimosPedidos,
  };

@@ -181,6 +181,8 @@ const consultarResumenSemanal = async (periodo, db) => {
         db
     );
 
+    const ultimosPedidos = await dashboardRepository.obtenerUltimosPedidos(db);
+
     return {
         alcance: "ultimos_7_dias",
         estadoPedido: "entregado",
@@ -209,6 +211,16 @@ const consultarResumenSemanal = async (periodo, db) => {
             ticketPromedio: numeroONull(dia.ticketPromedio),
             ticketMinimo: numeroONull(dia.ticketMinimo),
             ticketMaximo: numeroONull(dia.ticketMaximo),
+        })),
+        ultimosPedidos: ultimosPedidos.map((pedido) => ({
+            id: pedido.id,
+            cliente: pedido.usuario.nombre,
+            plato: pedido.items
+                .map((item) => `${item.cantidad} x ${item.plato.nombre}`)
+                .join(", "),
+            estado: pedido.estado,
+            montoTotal: Number(pedido.montoTotal),
+            fecha: pedido.fecha.toISOString(),
         })),
         abandono: {
             estadoPedido: "pendiente",
