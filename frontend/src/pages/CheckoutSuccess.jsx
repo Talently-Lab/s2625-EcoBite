@@ -103,7 +103,7 @@ export default function CheckoutSuccess() {
         </div>
 
         <button 
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/home')}
           className="w-full py-3 bg-[#3D2314] hover:bg-[#2A180D] text-white text-xs font-bold rounded-2xl transition shadow-md cursor-pointer"
         >
           Volver al Inicio
