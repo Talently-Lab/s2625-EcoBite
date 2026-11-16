@@ -1,4 +1,5 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://s2625-ecobite.onrender.com/api'
+const rawUrl = import.meta.env.VITE_API_URL || 'https://s2625-ecobite.onrender.com'
+const BASE_URL = rawUrl.endsWith('/api') ? rawUrl.slice(0, -4) : rawUrl
 
 /**
  * @param {string} endpoint 
@@ -29,8 +30,14 @@ export async function apiFetch(endpoint, options = {}) {
     config.body = JSON.stringify(options.body)
   }
 
+  // Normalizamos el endpoint para asegurar que no duplique '/api' y mantenga la barra correcta
+  const cleanEndpoint = endpoint.startsWith('/api') ? endpoint.slice(4) : endpoint
+  const finalEndpoint = cleanEndpoint.startsWith('/') ? cleanEndpoint : `/${cleanEndpoint}`
+  
+  const fullUrl = `${BASE_URL}/api${finalEndpoint}`
+
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, config)
+    const response = await fetch(fullUrl, config)
 
     if (response.status === 204) {
       return { success: true }
@@ -47,7 +54,7 @@ export async function apiFetch(endpoint, options = {}) {
 
     return data
   } catch (error) {
-    console.error(`[API Error] ${config.method} ${endpoint}:`, error.message)
+    console.error(`[API Error] ${config.method} ${fullUrl}:`, error.message)
     throw error
   }
 }
