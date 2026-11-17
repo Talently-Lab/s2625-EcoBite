@@ -11,6 +11,7 @@ const prisma = require("../config/prisma");
 const { validarUuid } = require("../validators/uuid.validator");
 const { validarPaginacion } = require("../validators/paginacion.validator");
 const { calcularDistanciaKm } = require("../utils/distancia");
+const { resolverCoordenadasDemo } = require("../utils/coordenadasDemo");
 
 // Comprueba el permiso antes de procesar los datos
 const autorizarCrecion = (usuarioActual) => {
@@ -68,12 +69,15 @@ const guardarPedido = async (datos, usuarioId, db) => {
         db
     );
 
-    const distanciaKm = calcularDistanciaKm(
-        restaurante.latitude,
-        restaurante.longitude,
-        datos.latitudDestino,
-        datos.longitudDestino
-    );
+    const distanciaKm =
+        datos.latitudDestino !== null && datos.longitudDestino !== null
+            ? calcularDistanciaKm(
+                restaurante.latitude,
+                restaurante.longitude,
+                datos.latitudDestino,
+                datos.longitudDestino
+            )
+            : 1.5;
 
     const platoIds = datos.items.map((item) => item.platoId);
     const platos = await platoRepository.findDisponiblesParaPedido(
@@ -95,10 +99,16 @@ const guardarPedido = async (datos, usuarioId, db) => {
 // Autoriza, valida y crea un pedido con sus detalles
 const crearPedido = async (datos, usuarioActual) => {
     autorizarCrecion(usuarioActual);
+
     const datosValidados = validarDatosPedido(datos);
+    const datosFinales = resolverCoordenadasDemo(
+        datosValidados,
+        usuarioActual
+    );
 
     return prisma.$transaction((tx) =>
-        guardarPedido(datosValidados, usuarioActual.id, tx));
+        guardarPedido(datosFinales, usuarioActual.id, tx)
+    );
 };
 
 // consulta un pedido perteneciente al cliente autenticado

@@ -57,15 +57,14 @@ export default function Landing() {
     setSubmitting(true)
     try {
       const data = await login(logEmail, logPassword)
-      const userData = data?.usuario || data?.user || JSON.parse(localStorage.getItem('ecobite_user') || '{}')
-      const userRole = userData?.tipoUsuario?.nombreRol || userData?.rol || userData?.role || userData?.tipo
+      const userRole = data.usuario?.tipoUsuario?.nombreRol
 
       setActiveModal(null)
 
-      if (userRole?.toLowerCase() === 'admin' || userRole?.toLowerCase() === 'administrador') {
-        navigate('/admin/dashboard')
+      if (userRole === 'admin') {
+        navigate('/admin/dashboard', { replace: true })
       } else {
-        navigate('/home')
+        navigate('/home', { replace: true })
       }
     } catch (err) {
       setError(true)

@@ -95,6 +95,18 @@ const validarDatosPedido = (datos) => {
         "El pedido"
     );
 
+    const latitud = datos.latitudDestino;
+    const longitud = datos.longitudDestino;
+
+    const sinCoordenadas = latitud == null && longitud == null;
+
+    if (!sinCoordenadas && (latitud == null || longitud == null)) {
+        throw new AppError(
+            "Debes proporcionar ambas coordenadas del destino",
+            400
+        );
+    }
+
     return {
         restauranteId: validarUuid(
             datos.restauranteId,
@@ -102,18 +114,12 @@ const validarDatosPedido = (datos) => {
         ),
         items: validarItems(datos.items),
         domicilioDestino: validaDomicilioDestino(datos.domicilioDestino),
-        latitudDestino: validarCoordenada(
-            datos.latitudDestino,
-            "latitudDestino",
-            -90,
-            90
-        ),
-        longitudDestino: validarCoordenada(
-            datos.longitudDestino,
-            "longitudDestino",
-            -180,
-            180
-        ),
+        latitudDestino: sinCoordenadas
+            ? null
+            : validarCoordenada(latitud, "latitudDestino", -90, 90),
+        longitudDestino: sinCoordenadas
+            ? null
+            : validarCoordenada(longitud, "longitudDestino", -180, 180),
     };
 };
 

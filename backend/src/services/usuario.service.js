@@ -3,6 +3,7 @@ const usuarioRepository = require("../repositories/usuario.repository");
 const tipoUsuarioRepository = require("../repositories/tipoUsuario.repository");
 const prisma = require("../config/prisma");
 const { validarListadoUsuarios } = require("../validators/usuarioListado.validator");
+const { calcularAhorroEnvasesGramos, calcularAhorroTransporteGramos, } = require("../utils/impactoPedido");
 
 const bcrypt = require("bcrypt");
 const validator = require("validator");
@@ -114,7 +115,75 @@ const listarUsuarios = async (query, usuarioActual) => {
     });
 };
 
+// Obtiene las métricas acumuladas del cliente autenticado
+const obtenerPerfilCliente = async (usuarioActual) => {
+    if (!usuarioActual || usuarioActual.nombreRol !== "cliente") {
+        throw new AppError("Solo los clientes pueden consultar estas métricas", 403);
+    }
+
+    const usuarioId = usuarioActual.id;
+
+    return prisma.$transaction(async (tx) => {
+        const pedidosSustentables =
+            await usuarioRepository.contarPedidosCliente(usuarioId, tx);
+
+        const entregados =
+            await usuarioRepository.obtenerPedidosEntregadosCliente(usuarioId, tx);
+
+        const recientes =
+            await usuarioRepository.obtenerPedidosRecientesCliente(usuarioId, tx);
+
+        let ahorroEnvases = 0;
+        let ahorroTransporte = 0;
+
+        let datosEnvasesCompletos = true;
+        let datosTransporteCompletos = true;
+
+        for (const pedido of entregados) {
+            const ahorro = calcularAhorroEnvasesGramos(pedido.items);
+
+            if (ahorro === null) {
+                datosEnvasesCompletos = false;
+            } else {
+                ahorroEnvases += Number(ahorro);
+            }
+
+            if (pedido.envio?.distanciaKm == null) {
+                datosTransporteCompletos = false;
+            } else {
+                ahorroTransporte += Number(
+                    calcularAhorroTransporteGramos(pedido.envio.distanciaKm)
+                );
+            }
+        }
+
+        return {
+            pedidosSustentables,
+
+            co2Ahorrado: datosEnvasesCompletos && datosTransporteCompletos
+                ? Number(((ahorroEnvases + ahorroTransporte) / 1000).toFixed(3))
+                : null,
+
+            // Cada envase biodegradable representa 50 gramos de CO2
+            envasesReutilizados: datosEnvasesCompletos
+                ? ahorroEnvases / 50
+                : null,
+
+            pedidosRecientes: recientes.map((pedido) => ({
+                id: pedido.id,
+                fecha: pedido.fecha.toISOString(),
+                restaurante: pedido.restaurante.nombre,
+                total: Number(pedido.montoTotal),
+                estado: pedido.estado,
+            })),
+        };
+    }, {
+        isolationLevel: "RepeatableRead",
+    });
+};
+
 module.exports = {
     registrarUsuario,
     listarUsuarios,
+    obtenerPerfilCliente,
 };
