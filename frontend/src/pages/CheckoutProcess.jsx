@@ -8,8 +8,8 @@ export default function CheckoutProcess() {
 
   const [paso, setPaso] = useState(1) // 1: Verificando, 2: Procesando, 3: Confirmando
 
-  const backendUrl = import.meta.env.VITE_API_URL 
-    ? import.meta.env.VITE_API_URL.replace('/api', '') 
+  const backendUrl = import.meta.env.VITE_API_URL
+    ? import.meta.env.VITE_API_URL.replace('/api', '')
     : 'https://s2625-ecobite.onrender.com'
 
   useEffect(() => {
@@ -23,41 +23,80 @@ export default function CheckoutProcess() {
       if (isMounted) setPaso(3)
     }, 6000)
 
-    // Al llegar al último paso, enviamos el pedido con el token real de sesión
+    // Al llegar al último paso, enviamos el pedido cumpliendo exactamente con pedido.validator.js
     const timer3 = setTimeout(async () => {
       try {
-        const payloadPedido = {
-          items: data.items || data.carrito || [],
-          total: data.total || data.subtotal || 0,
-          direccion: data.direccion || 'Dirección predeterminada',
-          metodoPago: data.metodoPago || 'Efectivo / Tarjeta'
+        const rawItems = data.items || data.carrito || []
+
+        // Agrupar platos repetidos y dejar solo { platoId, cantidad }
+        const itemsMap = new Map()
+        for (const item of rawItems) {
+          const platoId = item.platoId || item.id
+          const cantidad = Number(item.cantidad || item.quantity || 1)
+          if (platoId) {
+            itemsMap.set(platoId, (itemsMap.get(platoId) || 0) + cantidad)
+          }
         }
 
-        // Priorizamos 'ecobite_token' que contiene el JWT válido del backend
-        const token = localStorage.getItem('ecobite_token') || localStorage.getItem('token') || ''
+        const itemsLimpios = Array.from(itemsMap.entries()).map(
+          ([platoId, cantidad]) => ({
+            platoId,
+            cantidad: Math.max(1, Math.round(cantidad)),
+          })
+        )
+
+        // Obtener restauranteId desde el estado o desde el primer plato del carrito
+        const primerItem = rawItems[0] || {}
+        const restauranteId =
+          data.restauranteId ||
+          primerItem.restauranteId ||
+          primerItem.restaurante?.id ||
+          ''
+
+        const domicilioDestino = (
+          data.domicilioDestino ||
+          data.direccion ||
+          'Av. Corrientes 1234, CABA'
+        ).trim()
+
+        const payloadPedido = {
+          restauranteId,
+          items: itemsLimpios,
+          domicilioDestino,
+        }
+
+        const token =
+          localStorage.getItem('ecobite_token') ||
+          localStorage.getItem('token') ||
+          ''
 
         const response = await fetch(`${backendUrl}/api/pedidos`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify(payloadPedido)
+          body: JSON.stringify(payloadPedido),
         })
 
         let resultado = null
         if (response.ok) {
           resultado = await response.json().catch(() => null)
         } else {
-          console.error('Error en el servidor al registrar el pedido:', response.status)
+          const errorBody = await response.json().catch(() => null)
+          console.error(
+            'Error en el servidor al registrar el pedido:',
+            response.status,
+            errorBody
+          )
         }
 
         if (isMounted) {
-          navigate('/checkout/success', { 
-            state: { 
-              ...data, 
-              pedidoCreado: resultado 
-            } 
+          navigate('/checkout/success', {
+            state: {
+              ...data,
+              pedidoCreado: resultado?.pedido || resultado,
+            },
           })
         }
       } catch (err) {
@@ -89,7 +128,9 @@ export default function CheckoutProcess() {
       {/* Contenido Central */}
       <main className="max-w-md w-full mx-auto space-y-6 text-center py-6">
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Confirmación de pedido</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">
+            Confirmación de pedido
+          </h2>
           <p className="text-xs text-gray-500">UN PASITO MÁS</p>
         </div>
 
@@ -98,13 +139,19 @@ export default function CheckoutProcess() {
           <div className="w-16 h-16 rounded-full bg-[#F8F5F0] flex items-center justify-center mb-2">
             <span className="text-2xl">🛍️</span>
           </div>
-          <span className="text-[10px] text-gray-400 font-medium">Tiempo transcurrido</span>
+          <span className="text-[10px] text-gray-400 font-medium">
+            Tiempo transcurrido
+          </span>
           <span className="text-xs font-bold text-[#3D2314]">00:0{paso * 3}</span>
         </div>
 
         <div className="space-y-1">
-          <h1 className="text-lg font-black text-[#2D2320]">Verificando tu pedido</h1>
-          <p className="text-xs text-gray-500">Estamos preparando todo para que disfrutes tu próxima comida.</p>
+          <h1 className="text-lg font-black text-[#2D2320]">
+            Verificando tu pedido
+          </h1>
+          <p className="text-xs text-gray-500">
+            Estamos preparando todo para que disfrutes tu próxima comida.
+          </p>
         </div>
 
         {/* Tarjeta de Progreso */}
@@ -116,21 +163,47 @@ export default function CheckoutProcess() {
 
           <div className="space-y-3">
             <div className="flex items-center justify-between text-xs">
-              <span className={paso >= 1 ? 'font-bold text-[#3D2314]' : 'text-gray-400'}>Verificando tu pago</span>
-              <span className="text-[10px] text-amber-700 font-semibold">{paso === 1 ? 'En curso' : 'Listo'}</span>
+              <span
+                className={
+                  paso >= 1 ? 'font-bold text-[#3D2314]' : 'text-gray-400'
+                }
+              >
+                Verificando tu pago
+              </span>
+              <span className="text-[10px] text-amber-700 font-semibold">
+                {paso === 1 ? 'En curso' : 'Listo'}
+              </span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className={paso >= 2 ? 'font-bold text-[#3D2314]' : 'text-gray-400'}>Procesando pago</span>
-              <span className="text-[10px] text-gray-400">{paso > 2 ? 'Listo' : ''}</span>
+              <span
+                className={
+                  paso >= 2 ? 'font-bold text-[#3D2314]' : 'text-gray-400'
+                }
+              >
+                Procesando pago
+              </span>
+              <span className="text-[10px] text-gray-400">
+                {paso > 2 ? 'Listo' : ''}
+              </span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className={paso >= 3 ? 'font-bold text-[#3D2314]' : 'text-gray-400'}>Confirmando pedido</span>
-              <span className="text-[10px] text-gray-400">{paso === 3 ? 'Registrando...' : ''}</span>
+              <span
+                className={
+                  paso >= 3 ? 'font-bold text-[#3D2314]' : 'text-gray-400'
+                }
+              >
+                Confirmando pedido
+              </span>
+              <span className="text-[10px] text-gray-400">
+                {paso === 3 ? 'Registrando...' : ''}
+              </span>
             </div>
           </div>
         </div>
 
-        <p className="text-[11px] text-gray-400">No cierres la app ni vuelvas atrás mientras procesamos tu orden.</p>
+        <p className="text-[11px] text-gray-400">
+          No cierres la app ni vuelvas atrás mientras procesamos tu orden.
+        </p>
       </main>
 
       <div className="h-6"></div>
