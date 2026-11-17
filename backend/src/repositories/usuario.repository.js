@@ -103,10 +103,67 @@ const contarParaAdmin = (filtros, db = prisma) => {
     });
 };
 
+// Cuenta todos los pedidos del cliente
+const contarPedidosCliente = (usuarioId, db = prisma) => {
+    return db.pedido.count({
+        where: { usuarioId },
+    });
+};
+
+// Obtiene los pedidos entregados para calcular el impacto ambiental
+const obtenerPedidosEntregadosCliente = (usuarioId, db = prisma) => {
+    return db.pedido.findMany({
+        where: {
+            usuarioId,
+            estado: "entregado",
+        },
+        select: {
+            items: {
+                select: {
+                    cantidad: true,
+                    cantidadVasos: true,
+                    cantidadPlatos: true,
+                    cantidadCubiertos: true,
+                    cantidadRecipiente: true,
+                },
+            },
+            envio: {
+                select: {
+                    distanciaKm: true,
+                },
+            },
+        },
+    });
+};
+
+// Obtiene los últimos 10 pedidos del cliente
+const obtenerPedidosRecientesCliente = (usuarioId, db = prisma) => {
+    return db.pedido.findMany({
+        where: { usuarioId },
+        take: 10,
+        orderBy: [
+            { fecha: "desc" },
+            { id: "desc" },
+        ],
+        select: {
+            id: true,
+            fecha: true,
+            estado: true,
+            montoTotal: true,
+            restaurante: {
+                select: { nombre: true },
+            },
+        },
+    });
+};
+
 module.exports = {
     findByEmail,
     create,
     findByIdConRol,
     listarParaAdmin,
     contarParaAdmin,
+    contarPedidosCliente,
+    obtenerPedidosEntregadosCliente,
+    obtenerPedidosRecientesCliente,
 };

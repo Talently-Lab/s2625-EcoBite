@@ -7,7 +7,7 @@ const { cargarUsuarioActual, autorizarRoles, } = require("../middlewares/autoriz
 const router = Router();
 
 router.post("/registrar", limitarRegistro, usuarioController.registrar);
-router.get("/perfil", verificarToken, usuarioController.perfil);
+router.get("/perfil", verificarToken, cargarUsuarioActual, autorizarRoles("cliente"), usuarioController.perfil);
 router.get("/", verificarToken, cargarUsuarioActual, autorizarRoles("admin"), usuarioController.listar);
 
 

@@ -26,10 +26,16 @@ const registrar = async (req, res) =>{
 };
 
 //
-const perfil = (req, res) => {
-    res.status(200).json({ usuario: req.usuario });
-}
+const perfil = async (req, res) => {
+    const metricas = await usuarioService.obtenerPerfilCliente(
+        req.usuarioActual
+    );
 
+    res.status(200).json({
+        usuario: req.usuario,
+        ...metricas,
+    });
+};
 // Devuelve el listado paginado al administrador
 const listar = async (req, res) => {
     const resultado = await usuarioService.listarUsuarios(
