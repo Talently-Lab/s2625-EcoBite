@@ -7,7 +7,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Simulación de contador animado para métricas clave (Efecto WOW para portfolio)
+  // Simulación de contador animado para CO2
   const [co2Animado, setCo2Animado] = useState(0)
 
   useEffect(() => {
@@ -17,10 +17,10 @@ export default function AdminDashboard() {
         const data = await adminService.getStats()
         setStats(data)
 
-        // Animación de conteo para CO2
-        const targetCo2 = data?.co2AhorradosKg || 128.5
+        // Animación de conteo para CO2 usando el campo real del backend
+        const targetCo2 = data?.impacto?.ahorroTotalKg || 0
         let current = 0
-        const step = targetCo2 / 30
+        const step = targetCo2 > 30 ? targetCo2 / 30 : 1
         const timer = setInterval(() => {
           current += step
           if (current >= targetCo2) {
@@ -86,65 +86,73 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Tarjetas de KPI (Estilo Stat Dashboard) */}
+        {/* Tarjetas de KPI (Adaptadas al endpoint resumen-semanal) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
-          {/* KPI 1 */}
+          {/* KPI 1: Ventas Totales */}
           <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-2xs space-y-2 relative overflow-hidden">
             <div className="flex justify-between items-start">
               <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Ventas Totales</span>
               <span className="p-2 bg-emerald-50 text-emerald-700 rounded-2xl text-sm">💰</span>
             </div>
             <div className="space-y-0.5">
-              <h2 className="text-2xl font-black text-[#2D2320]">${stats?.totalVentas?.toLocaleString() || '489,200'}</h2>
-              <p className="text-[11px] text-emerald-600 font-semibold">+12.4% vs mes anterior</p>
+              <h2 className="text-2xl font-black text-[#2D2320]">
+                ${stats?.ventasTotales?.toLocaleString() ?? '—'}
+              </h2>
+              <p className="text-[11px] text-emerald-600 font-semibold">Últimos 7 días</p>
             </div>
           </div>
 
-          {/* KPI 2 */}
+          {/* KPI 2: CO2 Ahorrado */}
           <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-2xs space-y-2 relative overflow-hidden">
             <div className="flex justify-between items-start">
               <span className="text-xs font-bold uppercase tracking-wider text-gray-400">CO₂ Ahorrado</span>
               <span className="p-2 bg-amber-50 text-amber-700 rounded-2xl text-sm">🌱</span>
             </div>
             <div className="space-y-0.5">
-              <h2 className="text-2xl font-black text-[#2D2320]">{co2Animado} <span className="text-xs font-bold text-gray-500">kg</span></h2>
+              <h2 className="text-2xl font-black text-[#2D2320]">
+                {co2Animado} <span className="text-xs font-bold text-gray-500">kg</span>
+              </h2>
               <p className="text-[11px] text-gray-400">Impacto ecológico positivo</p>
             </div>
           </div>
 
-          {/* KPI 3 */}
+          {/* KPI 3: Pedidos Entregados */}
           <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-2xs space-y-2 relative overflow-hidden">
             <div className="flex justify-between items-start">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Pedidos Activos</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Pedidos Entregados</span>
               <span className="p-2 bg-blue-50 text-blue-700 rounded-2xl text-sm">🛍️</span>
             </div>
             <div className="space-y-0.5">
-              <h2 className="text-2xl font-black text-[#2D2320]">{stats?.pedidosActivos || 14}</h2>
-              <p className="text-[11px] text-blue-600 font-semibold">En cocina y camino</p>
+              <h2 className="text-2xl font-black text-[#2D2320]">
+                {stats?.pedidosEntregados ?? '—'}
+              </h2>
+              <p className="text-[11px] text-blue-600 font-semibold">Completados esta semana</p>
             </div>
           </div>
 
-          {/* KPI 4 */}
+          {/* KPI 4: Locales Aliados */}
           <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-2xs space-y-2 relative overflow-hidden">
             <div className="flex justify-between items-start">
               <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Locales Aliados</span>
               <span className="p-2 bg-purple-50 text-purple-700 rounded-2xl text-sm">🏪</span>
             </div>
             <div className="space-y-0.5">
-              <h2 className="text-2xl font-black text-[#2D2320]">{stats?.restaurantesAfiliados || 8}</h2>
-              <p className="text-[11px] text-purple-600 font-semibold">Activos en la red</p>
+              <h2 className="text-2xl font-black text-[#2D2320]">
+                {stats?.restaurantes?.activos ?? '—'}
+              </h2>
+              <p className="text-[11px] text-purple-600 font-semibold">Activos actualmente</p>
             </div>
           </div>
 
         </div>
 
-        {/* Tabla de Pedidos */}
+        {/* Tabla de Últimos Pedidos */}
         <div className="bg-white rounded-3xl border border-gray-100 shadow-2xs overflow-hidden space-y-4 p-5 sm:p-6">
           <div className="flex justify-between items-center border-b border-gray-100 pb-4">
             <div>
               <h2 className="font-bold text-sm sm:text-base text-[#2D2320]">Últimos Pedidos</h2>
-              <p className="text-xs text-gray-400">Monitoreo de órdenes en curso y completadas.</p>
+              <p className="text-xs text-gray-400">Monitoreo de órdenes recientes del sistema.</p>
             </div>
             <span className="text-xs font-bold text-[#3D2314] bg-gray-50 border border-gray-200 px-3 py-1 rounded-xl">
               Tiempo real
@@ -163,23 +171,35 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-gray-700">
-                {(stats?.pedidosRecientes || []).map((pedido, index) => (
-                  <tr key={pedido.id || index} className="hover:bg-gray-50/50 transition">
-                    <td className="py-3.5 px-3 font-bold text-gray-900">{pedido.id}</td>
-                    <td className="py-3.5 px-3 font-medium">{pedido.cliente}</td>
-                    <td className="py-3.5 px-3 text-gray-500">{pedido.plato}</td>
-                    <td className="py-3.5 px-3">
-                      <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                        pedido.estado === 'Completado' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                        pedido.estado === 'En proceso' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
-                        'bg-blue-50 text-blue-700 border border-blue-200'
-                      }`}>
-                        {pedido.estado}
-                      </span>
+                {(!stats?.ultimosPedidos || stats.ultimosPedidos.length === 0) ? (
+                  <tr>
+                    <td colSpan="5" className="py-6 text-center text-gray-400 text-xs">
+                      No hay pedidos recientes registrados.
                     </td>
-                    <td className="py-3.5 px-3 text-right font-black text-gray-900">${pedido.total?.toLocaleString()}</td>
                   </tr>
-                ))}
+                ) : (
+                  stats.ultimosPedidos.map((pedido, index) => (
+                    <tr key={pedido.id || index} className="hover:bg-gray-50/50 transition">
+                      <td className="py-3.5 px-3 font-bold text-gray-900 font-mono text-[11px]">
+                        {pedido.id ? `${pedido.id.slice(0, 8)}...` : '—'}
+                      </td>
+                      <td className="py-3.5 px-3 font-medium">{pedido.cliente || 'Sin cliente'}</td>
+                      <td className="py-3.5 px-3 text-gray-500">{pedido.plato || '—'}</td>
+                      <td className="py-3.5 px-3">
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                          pedido.estado === 'completado' || pedido.estado === 'entregado' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                          pedido.estado === 'pendiente' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
+                          'bg-blue-50 text-blue-700 border border-blue-200'
+                        }`}>
+                          {pedido.estado || 'desconocido'}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-3 text-right font-black text-gray-900">
+                        ${pedido.montoTotal?.toLocaleString() ?? '0'}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

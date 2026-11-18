@@ -2,21 +2,34 @@ import { apiFetch } from './api'
 
 export const adminService = {
   getStats: async () => {
+    // Obtenemos el token de autenticación del administrador desde localStorage
+    const token = localStorage.getItem('token') || '';
+
     try {
-      return await apiFetch('/dashboard/stats')
+      // Consumimos el endpoint real indicado por backend
+      const data = await apiFetch('/dashboard/resumen-semanal', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      return data;
     } catch (error) {
-      console.warn('Usando datos de respaldo para el dashboard por latencia de API:', error)
-      // Fallback por si el endpoint requiere un token de admin o está en desarrollo
+      console.warn('Usando datos de respaldo para el dashboard por latencia o falta de token:', error)
+      // Fallback de respaldo por si no hay sesión activa de admin en desarrollo
       return {
-        totalVentas: 489200,
-        pedidosActivos: 14,
-        co2AhorradosKg: 128.5,
-        restaurantesAfiliados: 8,
-        pedidosRecientes: [
-          { id: 'ORD-9821', cliente: 'Sofía Gomez', plato: 'Hamburguesa Patagónica', estado: 'Completado', total: 18700 },
-          { id: 'ORD-9822', cliente: 'Martín Pérez', plato: 'Canelones de Espinaca', estado: 'En proceso', total: 4350 },
-          { id: 'ORD-9823', cliente: 'Lucía Benítez', plato: 'Bowl de Falafel y Quinoa', estado: 'Pendiente', total: 12500 },
-          { id: 'ORD-9824', cliente: 'Carlos Ruiz', plato: 'Empanadas Criollas', estado: 'Completado', total: 6000 }
+        ventasTotales: 489200,
+        pedidosEntregados: 14,
+        impacto: {
+          ahorroTotalKg: 128.5
+        },
+        restaurantes: {
+          activos: 8
+        },
+        ultimosPedidos: [
+          { id: 'uuid-9821-mock', cliente: 'Sofía Gomez', plato: '2 x Hamburguesa Patagónica', estado: 'completado', montoTotal: 18700 },
+          { id: 'uuid-9822-mock', cliente: 'Martín Pérez', plato: '1 x Canelones de Espinaca', estado: 'pendiente', montoTotal: 4350 },
+          { id: 'uuid-9823-mock', cliente: 'Lucía Benítez', plato: '1 x Bowl de Falafel y Quinoa', estado: 'pendiente', montoTotal: 12500 },
+          { id: 'uuid-9824-mock', cliente: 'Carlos Ruiz', plato: '3 x Empanadas Criollas', estado: 'completado', montoTotal: 6000 }
         ]
       }
     }
