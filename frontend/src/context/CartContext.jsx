@@ -3,7 +3,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 const CartContext = createContext()
 
 export function CartProvider({ children }) {
-  // Inicializamos desde localStorage si existe
   const [cartItems, setCartItems] = useState(() => {
     try {
       const saved = localStorage.getItem('ecobite_cart')

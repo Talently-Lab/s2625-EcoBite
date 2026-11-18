@@ -4,24 +4,22 @@ import { apiFetch } from '../services/api'
 const AuthContext = createContext()
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null)
-  const [token, setToken] = useState(localStorage.getItem('ecobite_token') || null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
+  const [token, setToken] = useState(() => localStorage.getItem('ecobite_token') || localStorage.getItem('token') || null)
+  const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('ecobite_user')
-    if (savedUser && token) {
+    if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser))
+        return JSON.parse(savedUser)
       } catch (e) {
         console.error('Error al parsear el usuario guardado:', e)
+        return null
       }
     }
-    setLoading(false)
-  }, [token])
+    return null
+  })
+  const [loading, setLoading] = useState(false)
 
   const login = async (email, password) => {
-    // Enviamos ambas variantes (password y contrasena) para asegurar compatibilidad con el backend
     const data = await apiFetch('/auth/login', {
       method: 'POST',
       body: { 
@@ -41,7 +39,7 @@ export const AuthProvider = ({ children }) => {
     setUser(userData)
     setToken(authToken)
     localStorage.setItem('ecobite_token', authToken)
-    localStorage.setItem('token', authToken) // Por si algún componente usa 'token'
+    localStorage.setItem('token', authToken)
     if (userData) {
       localStorage.setItem('ecobite_user', JSON.stringify(userData))
     }

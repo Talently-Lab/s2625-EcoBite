@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { apiFetch } from '../services/api'
@@ -11,14 +11,25 @@ export default function Profile() {
   const [loadingPerfil, setLoadingPerfil] = useState(true)
   const [errorPerfil, setErrorPerfil] = useState(null)
 
-  // Redirigir al Login si no está autenticado
+  const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=60'
+  const DEFAULT_PLATO_IMG = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&auto=format&fit=crop&q=60'
+
+  const backendUrl = import.meta.env.VITE_API_URL 
+    ? import.meta.env.VITE_API_URL.replace('/api', '') 
+    : 'https://s2625-ecobite.onrender.com'
+
+  const resolveImageUrl = (rawPath) => {
+    if (!rawPath) return DEFAULT_PLATO_IMG
+    if (rawPath.startsWith('http')) return rawPath
+    return `${backendUrl}${rawPath}`
+  }
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       navigate('/login')
     }
   }, [isAuthenticated, loading, navigate])
 
-  // Consultar métricas individuales e historial real desde GET /api/usuarios/perfil
   useEffect(() => {
     const fetchPerfil = async () => {
       if (!isAuthenticated) return
@@ -40,6 +51,66 @@ export default function Profile() {
     }
   }, [isAuthenticated, loading])
 
+  // Calcular dinámicamente el plato más pedido a partir de pedidosRecientes reales
+  const platoFavorito = useMemo(() => {
+    const pedidos = perfilData?.pedidosRecientes || []
+    if (!Array.isArray(pedidos) || pedidos.length === 0) return null
+
+    const conteo = {}
+    let maxPlato = null
+    let maxCantidad = 0
+
+    pedidos.forEach((pedido) => {
+      const restauranteNombre = pedido.restaurante || pedido.nombreRestaurante || 'Restaurante EcoBite'
+      
+      if (Array.isArray(pedido.items) && pedido.items.length > 0) {
+        pedido.items.forEach((item) => {
+          const nombre = item.nombre || item.producto || pedido.plato
+          if (!nombre) return
+          const cant = Number(item.cantidad || 1)
+          if (!conteo[nombre]) {
+            conteo[nombre] = {
+              nombre,
+              restaurante: restauranteNombre,
+              imagen: item.imagen || item.imagenUrl || pedido.imagen || pedido.imagenUrl,
+              total: 0
+            }
+          }
+          conteo[nombre].total += cant
+          if (conteo[nombre].total > maxCantidad) {
+            maxCantidad = conteo[nombre].total
+            maxPlato = conteo[nombre]
+          }
+        })
+      } else if (pedido.plato || pedido.descripcion) {
+        const nombre = pedido.plato || pedido.descripcion
+        if (!conteo[nombre]) {
+          conteo[nombre] = {
+            nombre,
+            restaurante: restauranteNombre,
+            imagen: pedido.imagen || pedido.imagenUrl,
+            total: 0
+          }
+        }
+        conteo[nombre].total += 1
+        if (conteo[nombre].total > maxCantidad) {
+          maxCantidad = conteo[nombre].total
+          maxPlato = conteo[nombre]
+        }
+      }
+    })
+
+    if (!maxPlato && pedidos[0]) {
+      return {
+        nombre: pedidos[0].plato || `Pedido #${String(pedidos[0].id || '').slice(0, 8)}`,
+        restaurante: pedidos[0].restaurante || 'EcoBite',
+        imagen: pedidos[0].imagen || pedidos[0].imagenUrl
+      }
+    }
+
+    return maxPlato
+  }, [perfilData])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FAFAF7] flex items-center justify-center text-xs text-gray-500">
@@ -52,239 +123,155 @@ export default function Profile() {
     return null
   }
 
-  // Extraer datos combinando la respuesta real de /usuarios/perfil con AuthContext como respaldo
-  const usuarioInfo = perfilData?.usuario || perfilData || user || {}
-  const metricas = perfilData?.metricas || perfilData?.impacto || perfilData || {}
- const historial =
-    perfilData?.pedidosRecientes ||
-    perfilData?.historial ||
-    perfilData?.ultimosPedidos ||
-    perfilData?.pedidos ||
-    []
+  const usuarioInfo = perfilData?.usuario || user || {}
+  const nombreReal = usuarioInfo?.nombre || user?.nombre || 'Usuario'
+  const imagenReal = usuarioInfo?.imagenUri || user?.imagenUri
 
-  const pedidosSustentables =
-    metricas.pedidosSustentables ??
-    metricas.totalPedidos ??
-    metricas.pedidosEntregados ??
-    (Array.isArray(historial) ? historial.length : 0)
+  const pedidosSustentables = perfilData?.pedidosSustentables ?? 0
+  const envasesReutilizados = perfilData?.envasesReutilizados ?? 0
+  const co2AhorradoTotal = perfilData?.co2Ahorrado ?? 0
 
-  const co2Ahorrado =
-    metricas.co2Ahorrado ??
-    metricas.ahorroTotalKg ??
-    metricas.co2Total ??
-    0
-
-  const envasesReutilizados =
-    metricas.envasesReutilizados ??
-    metricas.plasticoEvitado ??
-    pedidosSustentables
-
-  const rolNombre =
-    usuarioInfo?.tipoUsuario?.nombreRol ||
-    (usuarioInfo?.tipoUsuarioId === 2 || usuarioInfo?.rol === 'admin'
-      ? 'Administrador'
-      : 'Cliente')
-
-  const formatearFecha = (fechaStr) => {
-    if (!fechaStr) return ''
-    const fecha = new Date(fechaStr)
-    if (Number.isNaN(fecha.getTime())) return fechaStr
-    return fecha.toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
-  }
-
-  const formatearEstado = (estado) => {
-    const mapa = {
-      pendiente: { texto: 'Pendiente', clase: 'bg-amber-100 text-amber-800' },
-      preparando: { texto: 'En preparación', clase: 'bg-blue-100 text-blue-800' },
-      en_camino: { texto: 'En camino', clase: 'bg-indigo-100 text-indigo-800' },
-      entregado: { texto: 'Entregado', clase: 'bg-emerald-100 text-emerald-800' },
-      cancelado: { texto: 'Cancelado', clase: 'bg-red-100 text-red-700' },
-    }
-    const clave = String(estado || '').toLowerCase()
-    return mapa[clave] || { texto: estado || 'Confirmado', clase: 'bg-gray-100 text-gray-700' }
-  }
+  const fechaActualMes = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })
+  const fechaFormateada = fechaActualMes.charAt(0).toUpperCase() + fechaActualMes.slice(1)
 
   return (
     <div className="min-h-screen bg-[#FAFAF7] text-[#3D2314] font-sans pb-16">
-      <header className="bg-[#FAFAF7] border-b border-gray-100 p-4 max-w-md mx-auto flex items-center justify-between">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-gray-700 text-sm flex items-center gap-1 cursor-pointer"
-        >
-          ← Volver
-        </button>
-        <h1 className="font-bold text-sm text-[#3A2E2B]">Mi cuenta</h1>
-        <span className="text-xs text-gray-500 font-medium">EcoBite</span>
+      {/* Header UX */}
+      <header className="bg-[#FAFAF7] p-4 max-w-md mx-auto flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-gray-700 text-sm cursor-pointer pr-1"
+            title="Volver"
+          >
+            ←
+          </button>
+          <span className="font-bold text-sm text-[#3D2314]">Mi impacto</span>
+        </div>
+        <span className="text-xs text-gray-500 font-medium">{fechaFormateada}</span>
       </header>
 
       <main className="max-w-md mx-auto p-4 space-y-6">
-        {/* Tarjeta de Usuario conectada a la API */}
-        <div className="bg-[#F5EFE6] border border-[#E8DFC8] rounded-2xl p-4 flex items-center gap-4">
+        {/* Tarjeta de Usuario */}
+        <div className="bg-[#F5EFE6] border border-[#E8DFC8] rounded-2xl p-4 flex items-center gap-4 shadow-2xs">
           <div className="w-14 h-14 rounded-full overflow-hidden bg-amber-100 shrink-0 flex items-center justify-center font-bold text-[#3D2314] text-lg">
-            {usuarioInfo?.nombre ? usuarioInfo.nombre.charAt(0).toUpperCase() : 'U'}
+            <img
+              src={imagenReal || DEFAULT_AVATAR}
+              alt={nombreReal}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.src = DEFAULT_AVATAR
+              }}
+            />
           </div>
           <div className="space-y-1">
             <h2 className="font-bold text-base text-[#3D2314]">
-              {usuarioInfo?.nombre || usuarioInfo?.name || 'Usuario'}
+              {nombreReal}
             </h2>
-            <p className="text-xs text-gray-500">
-              {usuarioInfo?.email || 'Sin correo asociado'}
-            </p>
-            <div className="inline-flex items-center gap-1 bg-white/80 px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-[#3D2314] border border-[#E8DFC8] mt-1">
+            <div className="inline-flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-full text-xs font-medium text-[#3D2314] border border-[#E8DFC8]">
               <span>🍃</span>
-              <span className="capitalize">Rol: {rolNombre}</span>
+              <span>{pedidosSustentables} pedidos sustentables</span>
             </div>
           </div>
         </div>
 
-        {/* Sección de Métricas de Impacto Individual */}
+        {/* Sección: Tu plato más pedido */}
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold text-sm text-[#3D2314]">Tu impacto sustentable</h2>
-            {loadingPerfil && (
-              <span className="text-[11px] text-gray-400">Actualizando...</span>
-            )}
-          </div>
+          <h2 className="font-bold text-sm text-[#3D2314]">Tu plato más pedido</h2>
+          
+          {platoFavorito ? (
+            <div className="bg-white p-4 rounded-2xl border border-[#EBE3D5] shadow-2xs flex items-center gap-4">
+              <img 
+                src={resolveImageUrl(platoFavorito.imagen)} 
+                alt={platoFavorito.nombre} 
+                className="w-20 h-20 rounded-xl object-cover shrink-0"
+                onError={(e) => {
+                  e.target.src = DEFAULT_PLATO_IMG
+                }}
+              />
+              <div className="flex-1 space-y-1.5">
+                <h3 className="font-bold text-xs text-[#3D2314]">{platoFavorito.nombre}</h3>
+                <p className="text-[11px] text-gray-500">{platoFavorito.restaurante}</p>
+                <button
+                  onClick={() => navigate('/catalog')}
+                  className="px-4 py-2 bg-[#3D2314] hover:bg-[#2A180D] text-white text-[11px] font-bold rounded-xl transition cursor-pointer inline-flex items-center gap-1"
+                >
+                  <span>Pedir ahora</span>
+                  <span>→</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-2xs text-center space-y-2">
+              <p className="text-xs text-gray-500">Aún no tienes pedidos registrados para mostrar tu plato favorito.</p>
+              <button
+                onClick={() => navigate('/catalog')}
+                className="mt-2 px-4 py-2 bg-[#3D2314] hover:bg-[#2A180D] text-white text-xs font-medium rounded-xl transition cursor-pointer inline-block"
+              >
+                Explorar catálogo →
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* Sección: Métricas principales (Grilla 2x2 fiel al UX) */}
+        <section className="space-y-3">
+          <h2 className="font-bold text-sm text-[#3D2314]">Métricas principales</h2>
 
           {errorPerfil ? (
             <div className="bg-white p-4 rounded-2xl border border-red-100 text-xs text-red-600 text-center">
               {errorPerfil}
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2.5">
-              <div className="bg-white p-3.5 rounded-2xl border border-[#EBE3D5] text-center shadow-2xs">
-                <span className="text-lg block mb-1">🥗</span>
-                <p className="text-base font-extrabold text-[#3D2314]">
+            <div className="grid grid-cols-2 gap-3">
+              {/* Tarjeta 1 */}
+              <div className="bg-white p-4 rounded-2xl border border-[#EBE3D5] shadow-2xs space-y-1">
+                <p className="text-xl font-black text-[#3D2314]">
                   {loadingPerfil ? '—' : pedidosSustentables}
                 </p>
-                <p className="text-[10px] text-gray-500 leading-tight mt-0.5">
-                  Pedidos eco
-                </p>
+                <p className="text-xs font-bold text-gray-800">pedidos sustentables</p>
+                <p className="text-[11px] text-gray-500">Órdenes</p>
               </div>
 
-              <div className="bg-white p-3.5 rounded-2xl border border-[#EBE3D5] text-center shadow-2xs">
-                <span className="text-lg block mb-1">🌱</span>
-                <p className="text-base font-extrabold text-emerald-700">
-                  {loadingPerfil ? '—' : `${Number(co2Ahorrado).toFixed(1)} kg`}
-                </p>
-                <p className="text-[10px] text-gray-500 leading-tight mt-0.5">
-                  CO₂ ahorrado
-                </p>
-              </div>
-
-              <div className="bg-white p-3.5 rounded-2xl border border-[#EBE3D5] text-center shadow-2xs">
-                <span className="text-lg block mb-1">♻️</span>
-                <p className="text-base font-extrabold text-[#3D2314]">
+              {/* Tarjeta 2 */}
+              <div className="bg-white p-4 rounded-2xl border border-[#EBE3D5] shadow-2xs space-y-1">
+                <p className="text-xl font-black text-[#3D2314]">
                   {loadingPerfil ? '—' : envasesReutilizados}
                 </p>
-                <p className="text-[10px] text-gray-500 leading-tight mt-0.5">
-                  Envases evitados
+                <p className="text-xs font-bold text-gray-800">Plásticos evitados</p>
+                <p className="text-[11px] text-gray-500">Órdenes sin utensilios</p>
+              </div>
+
+              {/* Tarjeta 3 */}
+              <div className="bg-white p-4 rounded-2xl border border-[#EBE3D5] shadow-2xs space-y-1">
+                <p className="text-xl font-black text-[#3D2314]">
+                  {loadingPerfil ? '—' : `${Number(co2AhorradoTotal).toFixed(1)} kg`}
                 </p>
+                <p className="text-xs font-bold text-gray-800">CO₂ ahorrado</p>
+                <p className="text-[11px] text-gray-500">Por packaging</p>
+              </div>
+
+              {/* Tarjeta 4 */}
+              <div className="bg-white p-4 rounded-2xl border border-[#EBE3D5] shadow-2xs space-y-1">
+                <p className="text-xl font-black text-[#3D2314]">
+                  {loadingPerfil ? '—' : `${(pedidosSustentables * 0.5).toFixed(1)} kg`}
+                </p>
+                <p className="text-xs font-bold text-gray-800">CO₂ ahorrado</p>
+                <p className="text-[11px] text-gray-500">Por envíos ecológicos</p>
               </div>
             </div>
           )}
         </section>
 
-        {/* Historial de Pedidos Recientes */}
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold text-sm text-[#3D2314]">Mis pedidos recientes</h2>
-            {Array.isArray(historial) && historial.length > 0 && (
-              <span className="text-[11px] text-gray-500">
-                {historial.length} {historial.length === 1 ? 'pedido' : 'pedidos'}
-              </span>
-            )}
-          </div>
-
-          {loadingPerfil ? (
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 text-center text-xs text-gray-400">
-              Cargando historial de pedidos...
-            </div>
-          ) : Array.isArray(historial) && historial.length > 0 ? (
-            <div className="space-y-2.5">
-              {historial.map((pedido, index) => {
-                const badge = formatearEstado(pedido.estado)
-                const total = pedido.montoTotal ?? pedido.total ?? 0
-                const tituloPlato =
-                  pedido.plato ||
-                  pedido.descripcion ||
-                  (Array.isArray(pedido.items)
-                    ? pedido.items.map((i) => `${i.cantidad}x ${i.nombre}`).join(', ')
-                    : `Pedido #${String(pedido.id || index + 1).slice(0, 8)}`)
-
-                return (
-                  <div
-                    key={pedido.id || index}
-                    className="bg-white p-4 rounded-2xl border border-[#EBE3D5] shadow-2xs space-y-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-xs font-bold text-[#3D2314]">{tituloPlato}</p>
-                        {(pedido.restaurante || pedido.fecha) && (
-                          <p className="text-[11px] text-gray-500 mt-0.5">
-                            {[pedido.restaurante, formatearFecha(pedido.fecha)]
-                              .filter(Boolean)
-                              .join(' • ')}
-                          </p>
-                        )}
-                      </div>
-                      <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${badge.clase}`}
-                      >
-                        {badge.texto}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1.5 border-t border-gray-100 text-xs">
-                      <span className="text-gray-500">Total abonado</span>
-                      <span className="font-bold text-[#3D2314]">
-                        ${Number(total).toLocaleString('es-AR')}
-                      </span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-2xs space-y-2 text-center">
-              <p className="text-xs text-gray-500">
-                Aún no tienes pedidos registrados en tu cuenta.
-              </p>
-              <button
-                onClick={() => navigate('/catalog')}
-                className="mt-2 px-4 py-2 bg-[#3D2314] hover:bg-[#2A180D] text-white text-xs font-medium rounded-xl transition cursor-pointer inline-block"
-              >
-                Explorar catálogo y hacer un pedido →
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* Sección de Ayuda y soporte */}
+        {/* Sección de Ayuda y soporte (Solicitada por Leonel) */}
         <div className="bg-white border border-[#EBE3D5] rounded-2xl p-4 flex items-center justify-between shadow-2xs hover:bg-[#FAF8F5] transition cursor-pointer">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-[#FAF8F5] border border-[#EBE3D5] flex items-center justify-center text-[#3D2314]">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              🎧
             </div>
             <span className="text-xs font-bold text-[#3D2314]">Ayuda y soporte</span>
           </div>
-          <span className="text-[#3D2314] font-bold">→</span>
+          <span className="text-[#3D2314] font-bold text-base">→</span>
         </div>
 
         {/* Botón Cerrar Sesión */}

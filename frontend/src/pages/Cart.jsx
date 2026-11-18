@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useCart } from '../context/CartContext' // Conectamos con el contexto global
+import { useCart } from '../context/CartContext' 
 
 export default function Cart() {
   const navigate = useNavigate()
@@ -56,7 +56,7 @@ export default function Cart() {
               <p className="text-xs text-gray-400">No tienes productos seleccionados en este momento.</p>
             </div>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/catalog')}
               className="mt-2 px-5 py-3 bg-[#3D2314] hover:bg-[#2A180D] text-white text-xs font-bold rounded-xl transition cursor-pointer inline-block"
             >
               Explorar restaurantes

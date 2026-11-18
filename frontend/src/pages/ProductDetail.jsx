@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useCart } from '../context/CartContext' // 1. Importamos el contexto global del carrito
+import { useCart } from '../context/CartContext' 
 
 export default function ProductDetail() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { addToCart } = useCart() // 2. Extraemos la función addToCart
+  const { addToCart } = useCart() 
 
   // Producto recibido estrictamente por navegación (sin fallback de mock estático)
   const producto = location.state?.producto || null

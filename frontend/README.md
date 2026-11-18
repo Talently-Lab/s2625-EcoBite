@@ -12,7 +12,7 @@ Aplicación web desarrollada para conectar a los usuarios con locales gastronóm
 - **Control de versiones:** Git / GitHub
 
 ## 🔗 Enlaces del Proyecto
-- **Sitio en vivo:** (https://s2625-ecobite-frontend-6q5ssx9a8-ecobite.vercel.app/) 
+- **Sitio en vivo:** (https://s2625-ecobite-frontend-mu.vercel.app/) 
 - **API Backend:** Conectado a la API en la nube (Render)
 
 ## 👥 Equipo de Desarrollo

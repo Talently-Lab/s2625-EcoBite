@@ -37,7 +37,6 @@ export default function Home() {
     return `${backendUrl}${rawPath}`
   }
 
-  // Corrección clave: Manejo separado para locales (StoreDetail) y platos (ProductDetail)
   const handleProductClick = (item, isStore = false) => {
     const id = item.id || item._id
 

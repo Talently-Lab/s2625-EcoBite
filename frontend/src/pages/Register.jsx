@@ -48,9 +48,8 @@ export default function Register() {
   }
 
   return (
-    /* Cambiamos items-center por items-end en mobile y quitamos padding exterior inicial */
     <div className="min-h-screen bg-[#333333]/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 font-sans">
-      {/* Ajustamos los bordes a rounded-t-3xl sm:rounded-3xl para el efecto bottom sheet */}
+      {/* Ajuste los bordes a rounded-t-3xl sm:rounded-3xl para el efecto bottom sheet */}
       <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
         
         <h2 className="text-center font-bold text-base sm:text-lg text-[#3A2E2B]">
