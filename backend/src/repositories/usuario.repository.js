@@ -46,6 +46,7 @@ const findByIdConRol = (id) => {
             id: true,
             email: true,
             nombre: true,
+            imagenUri: true,
             activo: true,
             restauranteId: true,
             tipoUsuario: { select: { nombreRol: true } },

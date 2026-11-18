@@ -32,7 +32,11 @@ const perfil = async (req, res) => {
     );
 
     res.status(200).json({
-        usuario: req.usuario,
+        usuario: {
+            ...req.usuario,
+            nombre: req.usuarioActual.nombre,
+            imagenUri: req.usuarioActual.imagenUri,
+        },
         ...metricas,
     });
 };
