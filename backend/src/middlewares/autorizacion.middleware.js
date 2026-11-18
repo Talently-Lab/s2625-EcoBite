@@ -28,6 +28,7 @@ const cargarUsuarioActual = async (req, res, next) => {
         id: usuario.id,
         email: usuario.email,
         nombre: usuario.nombre,
+        imagenUri: usuario.imagenUri,
         nombreRol: usuario.tipoUsuario.nombreRol,
         restauranteId: usuario.restauranteId,
     };
